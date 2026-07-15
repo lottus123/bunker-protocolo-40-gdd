@@ -5,149 +5,187 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>GDD | BUNKER: PROTOCOLO 40</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Saira+Stencil+One&family=Special+Elite&family=Inter:wght@400;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
 :root{
-  --bg:#0b0a08; --panel:#14110d; --panel2:#1b1712; --line:#2e281f;
-  --green:#8dffa8; --green-dim:#3f7a4e; --amber:#ffcf7d; --amber-dim:#8a6b3a;
-  --red:#ff6a5a; --text:#d8e6da; --muted:#8a9a8c;
+  --bg:#0d0e0c; --panel:#111310; --panel2:#141713; --line:#22261f; --line2:#323830;
+  --green:#9fb98b; --green-dim:#5a6b4e; --amber:#d9a95f; --amber-dim:#8a6f45;
+  --red:#c2544a; --text:#d6dbd0; --muted:#8b948a;
+  --serif-title:'Special Elite',monospace;
+  --mono:'IBM Plex Mono',monospace;
 }
 *{box-sizing:border-box;margin:0;padding:0}
 html{scroll-behavior:smooth}
 body{
   background:var(--bg); color:var(--text);
-  font-family:'Segoe UI',system-ui,-apple-system,sans-serif;
-  font-size:16px; line-height:1.55;
+  font-family:'Inter','Segoe UI',system-ui,sans-serif;
+  font-size:15.5px; line-height:1.65;
 }
-::selection{background:#2f6b3d;color:#fff}
+/* grão de filme + vinheta, bem sutis */
+body::before{
+  content:"";position:fixed;inset:0;pointer-events:none;z-index:200;opacity:.05;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+body::after{
+  content:"";position:fixed;inset:0;pointer-events:none;z-index:199;
+  background:radial-gradient(ellipse at 50% 40%, transparent 60%, rgba(0,0,0,.35) 100%);
+}
+::selection{background:#3d3423;color:#f2ead8}
 
 /* ---------- topo ---------- */
 #topbar{
-  position:fixed;top:0;left:0;right:0;min-height:56px;z-index:50;
-  background:linear-gradient(180deg,#161209,#0e0c08);
-  border-bottom:2px solid var(--line);
-  display:flex;align-items:center;gap:10px;padding:8px 16px;flex-wrap:wrap;
+  position:fixed;top:0;left:0;right:0;min-height:54px;z-index:50;
+  background:rgba(13,14,12,.92);backdrop-filter:blur(4px);
+  border-bottom:1px solid var(--line);
+  display:flex;align-items:center;gap:12px;padding:8px 20px;flex-wrap:wrap;
 }
-#topbar .logo{font-family:'Press Start 2P',monospace;font-size:11px;color:var(--amber);text-shadow:0 0 8px rgba(255,207,125,.4);white-space:nowrap}
-#topbar .logo span{color:var(--green)}
-#saveState{font-size:12px;color:var(--muted);margin-left:4px;min-width:110px}
+#topbar .logo{
+  font-family:'Saira Stencil One',sans-serif;font-size:17px;letter-spacing:2px;
+  color:var(--text);white-space:nowrap;
+}
+#topbar .logo span{color:var(--amber)}
+#saveState{font-family:var(--mono);font-size:11px;color:var(--muted);margin-left:4px;min-width:100px}
 #topbar .spacer{flex:1}
 .tbtn{
-  background:#1d1812;color:#d8c9a8;border:1px solid #4a3f30;
-  font-size:13px;padding:6px 12px;cursor:pointer;border-radius:2px;white-space:nowrap;
+  background:transparent;color:var(--muted);border:1px solid var(--line2);
+  font-family:var(--mono);font-size:11px;letter-spacing:1px;text-transform:uppercase;
+  padding:6px 13px;cursor:pointer;border-radius:3px;white-space:nowrap;
+  transition:color .15s,border-color .15s;
 }
-.tbtn:hover{background:#2a2318;color:#ffe9bd}
+.tbtn:hover{color:var(--amber);border-color:var(--amber-dim)}
 .tbtn.danger:hover{border-color:var(--red);color:var(--red)}
 
 /* ---------- barra de formatação ---------- */
 #fmtbar{
-  position:fixed;top:56px;left:280px;right:0;min-height:40px;z-index:40;
-  background:#100d09;border-bottom:1px solid var(--line);
-  display:flex;align-items:center;gap:4px;padding:4px 20px;flex-wrap:wrap;
+  position:fixed;top:54px;left:280px;right:0;min-height:38px;z-index:40;
+  background:rgba(13,14,12,.92);backdrop-filter:blur(4px);
+  border-bottom:1px solid var(--line);
+  display:flex;align-items:center;gap:2px;padding:4px 24px;flex-wrap:wrap;
 }
 .fbtn{
-  background:transparent;color:#b9c9bb;border:1px solid transparent;
-  font-size:13px;padding:4px 10px;cursor:pointer;border-radius:2px;font-family:inherit;
-  white-space:nowrap;
+  background:transparent;color:var(--muted);border:1px solid transparent;
+  font-family:var(--mono);font-size:12px;padding:4px 10px;cursor:pointer;border-radius:3px;
+  white-space:nowrap;transition:color .15s;
 }
-.fbtn:hover{border-color:var(--green-dim);color:var(--green)}
-.fbtn b{font-weight:800}
-.fsep{width:1px;height:20px;background:var(--line);margin:0 6px;flex:none}
-#fmtbar .hint{margin-left:auto;font-size:11px;color:#5a6a5c;white-space:nowrap}
+.fbtn:hover{color:var(--amber);border-color:var(--line2)}
+.fbtn b{font-weight:600}
+.fsep{width:1px;height:16px;background:var(--line2);margin:0 8px;flex:none}
+#fmtbar .hint{margin-left:auto;font-family:var(--mono);font-size:10px;color:#565e54;white-space:nowrap}
 @media (max-width:1280px){#fmtbar .hint{display:none}}
 
 /* ---------- sidebar ---------- */
 #sidebar{
-  position:fixed;top:56px;left:0;bottom:0;width:280px;z-index:45;
-  background:var(--panel);border-right:2px solid var(--line);
+  position:fixed;top:54px;left:0;bottom:0;width:280px;z-index:45;
+  background:transparent;border-right:1px solid var(--line);
   display:flex;flex-direction:column;
 }
 #navSearch{
-  margin:12px;padding:8px 10px;background:#0d0b08;border:1px solid var(--line);
-  color:var(--green);font-family:inherit;font-size:13px;outline:none;
+  margin:14px 16px 10px;padding:7px 2px;background:transparent;
+  border:none;border-bottom:1px solid var(--line2);
+  color:var(--text);font-family:var(--mono);font-size:12px;outline:none;
 }
-#navSearch:focus{border-color:var(--green-dim)}
-#navList{flex:1;overflow-y:auto;padding:0 8px 12px;scrollbar-width:thin;scrollbar-color:var(--green-dim) transparent}
+#navSearch::placeholder{color:#565e54}
+#navSearch:focus{border-bottom-color:var(--amber-dim)}
+#navList{flex:1;overflow-y:auto;padding:0 8px 12px;scrollbar-width:thin;scrollbar-color:var(--line2) transparent}
 .navItem{
-  display:flex;align-items:center;gap:6px;
-  padding:7px 10px;margin:2px 0;cursor:pointer;border-radius:2px;
-  color:#b9c9bb;font-size:13.5px;border-left:2px solid transparent;
+  display:flex;align-items:center;gap:8px;
+  padding:6px 10px;margin:1px 0;cursor:pointer;border-radius:3px;
+  color:var(--muted);font-size:13px;border-left:2px solid transparent;
+  transition:color .15s;
 }
-.navItem:hover{background:#1d1913;color:var(--green)}
-.navItem.active{border-left-color:var(--amber);color:var(--amber);background:#1d1913}
-.navItem .num{color:#5a6a5c;font-size:11px;min-width:20px}
-#addSection{margin:10px 12px 14px;border-style:dashed;text-align:center}
+.navItem:hover{color:var(--text)}
+.navItem.active{border-left-color:var(--amber);color:var(--text);background:rgba(217,169,95,.05)}
+.navItem .num{font-family:var(--mono);color:#565e54;font-size:10px;min-width:20px}
+#addSection{margin:10px 16px 16px;border-style:dashed;text-align:center}
 
 /* ---------- conteúdo ---------- */
-#main{margin-left:280px;padding:120px 40px 120px;max-width:1020px}
+#main{margin-left:280px;padding:120px 48px 140px;max-width:960px}
 .section{
-  background:var(--panel2);border:1px solid var(--line);border-radius:3px;
-  margin-bottom:28px;position:relative;
-  box-shadow:0 4px 18px rgba(0,0,0,.35);
+  background:var(--panel);border:1px solid var(--line);border-radius:5px;
+  margin-bottom:26px;position:relative;
 }
 .sec-head{
-  display:flex;align-items:center;gap:10px;
-  padding:14px 20px;border-bottom:1px solid var(--line);
-  background:linear-gradient(180deg,#1e1a13,#1b1712);
+  display:flex;align-items:center;gap:12px;
+  padding:16px 24px 12px;border-bottom:1px solid var(--line);
 }
-.sec-head .num{font-family:'Press Start 2P',monospace;font-size:10px;color:#5a6a5c;flex:none}
+.sec-head .num{font-family:var(--mono);font-size:11px;color:#565e54;flex:none}
 .sec-title{
-  flex:1;font-family:'Press Start 2P',monospace;font-size:13px;color:var(--amber);
-  outline:none;line-height:1.6;min-width:60px;
+  flex:1;font-family:var(--serif-title);font-size:19px;color:var(--text);
+  outline:none;line-height:1.4;min-width:60px;letter-spacing:.5px;
 }
-.sec-title:focus{color:#ffe9bd}
-.sec-ctrl{display:flex;gap:4px;opacity:.25;transition:opacity .15s;flex:none}
-.section:hover .sec-ctrl{opacity:1}
+.sec-title:focus{color:var(--amber)}
+.sec-ctrl{display:flex;gap:4px;opacity:0;transition:opacity .15s;flex:none}
+.section:hover .sec-ctrl{opacity:.8}
 .cbtn{
-  background:#241e15;color:#b9a980;border:1px solid #3a3226;width:26px;height:26px;
-  cursor:pointer;font-size:13px;border-radius:2px;line-height:1;
+  background:transparent;color:var(--muted);border:1px solid var(--line2);width:25px;height:25px;
+  cursor:pointer;font-size:12px;border-radius:3px;line-height:1;
 }
 .cbtn:hover{color:var(--amber);border-color:var(--amber-dim)}
 .cbtn.del:hover{color:var(--red);border-color:var(--red)}
 .sec-body{padding:20px 26px 26px;outline:none;min-height:40px}
-.sec-body:focus{box-shadow:inset 0 0 0 1px var(--green-dim)}
+.sec-body:focus{box-shadow:inset 2px 0 0 var(--amber-dim)}
 
 /* tipografia do conteúdo */
-.sec-body h3{color:var(--green);font-size:17px;margin:20px 0 8px;letter-spacing:.3px}
+.sec-body h3{
+  font-family:var(--serif-title);font-weight:400;color:var(--amber);
+  font-size:16px;margin:24px 0 8px;letter-spacing:.4px;
+}
 .sec-body h3:first-child{margin-top:0}
-.sec-body h4{color:#c9e0cc;font-size:15px;margin:16px 0 6px}
+.sec-body h4{color:var(--text);font-size:14.5px;font-weight:600;margin:16px 0 6px}
 .sec-body p{margin:0 0 10px}
 .sec-body ul,.sec-body ol{margin:0 0 12px 22px}
-.sec-body li{margin-bottom:4px}
-.sec-body b,.sec-body strong{color:#fff}
-.sec-body em{color:#cfe6d2}
-.sec-body table{border-collapse:collapse;width:100%;margin:10px 0 14px;font-size:14px}
-.sec-body th{background:#241e15;color:var(--amber);text-align:left;padding:7px 10px;border:1px solid var(--line);font-weight:600}
-.sec-body td{padding:7px 10px;border:1px solid var(--line);vertical-align:top}
-.sec-body tr:nth-child(even) td{background:#18140f}
-.callout{
-  border:1px solid var(--amber-dim);border-left:4px solid var(--amber);
-  background:#1e180f;padding:12px 16px;margin:12px 0;border-radius:2px;
+.sec-body li{margin-bottom:5px}
+.sec-body b,.sec-body strong{color:#f0f2ec;font-weight:600}
+.sec-body em{color:#c4cbbe}
+.sec-body table{border-collapse:collapse;width:100%;margin:12px 0 16px;font-size:13.5px}
+.sec-body th{
+  background:transparent;color:var(--muted);text-align:left;padding:8px 10px;
+  border:none;border-bottom:1px solid var(--line2);
+  font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:.8px;font-weight:500;
 }
-.callout.green{border-color:var(--green-dim);border-left-color:var(--green);background:#0f1a12}
-.callout.red{border-color:#6b2f2f;border-left-color:var(--red);background:#1c100e}
+.sec-body td{padding:8px 10px;border:none;border-bottom:1px solid var(--line);vertical-align:top}
+.sec-body tr:nth-child(even) td{background:transparent}
+.callout{
+  border:none;border-left:2px solid var(--amber);
+  background:rgba(217,169,95,.05);padding:13px 18px;margin:14px 0;border-radius:0 4px 4px 0;
+}
+.callout.green{border-left-color:var(--green);background:rgba(159,185,139,.05)}
+.callout.red{border-left-color:var(--red);background:rgba(194,84,74,.05)}
 .tag{
-  display:inline-block;background:#241e15;border:1px solid var(--amber-dim);color:var(--amber);
-  font-size:12px;padding:1px 8px;border-radius:10px;margin:0 4px 4px 0;
+  display:inline-block;background:transparent;border:1px solid var(--line2);color:var(--muted);
+  font-family:var(--mono);font-size:11px;padding:2px 10px;border-radius:3px;margin:0 4px 5px 0;
 }
 .kv{color:var(--muted)}
 .kv b{color:var(--green);font-weight:600}
-hr{border:none;border-top:1px dashed var(--line);margin:18px 0}
-.ficha{border:1px solid var(--line);border-radius:3px;padding:14px 18px;margin:14px 0;background:#161310}
-.ficha h4{margin-top:0!important;color:var(--green)!important;font-size:16px!important}
+hr{border:none;border-top:1px dashed var(--line2);margin:20px 0}
+.ficha{
+  border:1px dashed var(--line2);border-radius:4px;padding:16px 20px 12px;margin:16px 0;
+  background:rgba(255,255,255,.012);position:relative;
+}
+.ficha::after{
+  content:"DOSSIÊ";position:absolute;top:10px;right:14px;
+  font-family:var(--mono);font-size:9px;letter-spacing:2px;color:#565e54;
+}
+.ficha h4{
+  margin-top:0!important;font-family:var(--serif-title);font-weight:400;
+  color:var(--text)!important;font-size:16px!important;letter-spacing:.3px;
+}
 
 /* ---------- colaboração ---------- */
 #peers{display:flex;gap:5px;align-items:center}
 .peer{
-  width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;
-  font-size:12px;font-weight:700;color:#0b0a08;border:2px solid #0b0a08;cursor:default;
+  width:23px;height:23px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+  font-size:11px;font-weight:700;color:#0d0e0c;cursor:default;opacity:.9;
 }
-#collabState{font-size:12px;color:var(--muted);white-space:nowrap}
+#collabState{font-family:var(--mono);font-size:10px;letter-spacing:.5px;color:var(--muted);white-space:nowrap}
 #collabState.on{color:var(--green)}
 .editors{display:flex;gap:4px;flex:none}
-.editorTag{font-size:11px;padding:2px 9px;border-radius:9px;color:#0b0a08;font-weight:700;white-space:nowrap;animation:pulseTag 1.6s ease-in-out infinite}
-@keyframes pulseTag{50%{opacity:.55}}
-.section.remote-editing{outline:1px dashed var(--amber-dim)}
+.editorTag{
+  font-family:var(--mono);font-size:10px;padding:2px 9px;border-radius:3px;
+  color:#0d0e0c;font-weight:600;white-space:nowrap;animation:pulseTag 1.8s ease-in-out infinite;
+}
+@keyframes pulseTag{50%{opacity:.5}}
+.section.remote-editing{border-color:var(--amber-dim)}
 
 /* ---------- impressão ---------- */
 @media print{
@@ -178,16 +216,17 @@ hr{border:none;border-top:1px dashed var(--line);margin:18px 0}
 <body>
 
 <div id="topbar">
-  <div class="logo">GDD // BUNKER: <span>PROTOCOLO 40</span></div>
+  <div class="logo">BUNKER <span>PROTOCOLO 40</span></div>
+  <div style="font-family:var(--mono);font-size:9px;letter-spacing:2px;color:#565e54;white-space:nowrap">DOCUMENTO DE DESIGN</div>
   <div id="saveState">...</div>
   <div id="collabState"></div>
   <div id="peers"></div>
   <div class="spacer"></div>
-  <button class="tbtn" onclick="exportJSON()">⬇ Exportar JSON</button>
-  <button class="tbtn" onclick="document.getElementById('importFile').click()">⬆ Importar JSON</button>
+  <button class="tbtn" onclick="exportJSON()">Exportar</button>
+  <button class="tbtn" onclick="document.getElementById('importFile').click()">Importar</button>
   <input type="file" id="importFile" accept=".json" style="display:none" onchange="importJSON(this)">
-  <button class="tbtn" onclick="window.print()">🖨 Imprimir / PDF</button>
-  <button class="tbtn danger" onclick="restoreDefault()">↺ Restaurar padrão</button>
+  <button class="tbtn" onclick="window.print()">PDF</button>
+  <button class="tbtn danger" onclick="restoreDefault()">Resetar</button>
 </div>
 
 <div id="fmtbar">
@@ -202,13 +241,13 @@ hr{border:none;border-top:1px dashed var(--line);margin:18px 0}
   <button class="fbtn" onmousedown="fmt(event,'insertUnorderedList')">• Lista</button>
   <button class="fbtn" onmousedown="fmt(event,'insertOrderedList')">1. Lista</button>
   <div class="fsep"></div>
-  <button class="fbtn" onmousedown="insertHTMLAtCursor(event, TPL.table)">⊞ Tabela</button>
-  <button class="fbtn" onmousedown="insertHTMLAtCursor(event, TPL.callout)">▮ Destaque</button>
-  <button class="fbtn" onmousedown="insertHTMLAtCursor(event, TPL.calloutGreen)">▮ Regra</button>
-  <button class="fbtn" onmousedown="insertHTMLAtCursor(event, TPL.ficha)">▣ Ficha</button>
+  <button class="fbtn" onmousedown="insertHTMLAtCursor(event, TPL.table)">Tabela</button>
+  <button class="fbtn" onmousedown="insertHTMLAtCursor(event, TPL.callout)">Destaque</button>
+  <button class="fbtn" onmousedown="insertHTMLAtCursor(event, TPL.calloutGreen)">Regra</button>
+  <button class="fbtn" onmousedown="insertHTMLAtCursor(event, TPL.ficha)">Ficha</button>
   <button class="fbtn" onmousedown="insertHTMLAtCursor(event, '<hr>')">Separador</button>
   <div class="fsep"></div>
-  <button class="fbtn" onmousedown="fmt(event,'removeFormat')">✕ Limpar</button>
+  <button class="fbtn" onmousedown="fmt(event,'removeFormat')">Limpar</button>
   <span class="hint">Clique em qualquer texto para editar · tudo salva automaticamente</span>
 </div>
 
