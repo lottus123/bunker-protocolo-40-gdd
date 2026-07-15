@@ -136,6 +136,19 @@ hr{border:none;border-top:1px dashed var(--line);margin:18px 0}
 .ficha{border:1px solid var(--line);border-radius:3px;padding:14px 18px;margin:14px 0;background:#161310}
 .ficha h4{margin-top:0!important;color:var(--green)!important;font-size:16px!important}
 
+/* ---------- colaboração ---------- */
+#peers{display:flex;gap:5px;align-items:center}
+.peer{
+  width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+  font-size:12px;font-weight:700;color:#0b0a08;border:2px solid #0b0a08;cursor:default;
+}
+#collabState{font-size:12px;color:var(--muted);white-space:nowrap}
+#collabState.on{color:var(--green)}
+.editors{display:flex;gap:4px;flex:none}
+.editorTag{font-size:11px;padding:2px 9px;border-radius:9px;color:#0b0a08;font-weight:700;white-space:nowrap;animation:pulseTag 1.6s ease-in-out infinite}
+@keyframes pulseTag{50%{opacity:.55}}
+.section.remote-editing{outline:1px dashed var(--amber-dim)}
+
 /* ---------- impressão ---------- */
 @media print{
   body{background:#fff;color:#111;font-size:12px}
@@ -167,6 +180,8 @@ hr{border:none;border-top:1px dashed var(--line);margin:18px 0}
 <div id="topbar">
   <div class="logo">GDD // BUNKER: <span>PROTOCOLO 40</span></div>
   <div id="saveState">...</div>
+  <div id="collabState"></div>
+  <div id="peers"></div>
   <div class="spacer"></div>
   <button class="tbtn" onclick="exportJSON()">⬇ Exportar JSON</button>
   <button class="tbtn" onclick="document.getElementById('importFile').click()">⬆ Importar JSON</button>
@@ -205,6 +220,24 @@ hr{border:none;border-top:1px dashed var(--line);margin:18px 0}
 
 <div id="main"></div>
 
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+<script>
+// ============================================================
+// CONFIGURAÇÃO DA COLABORAÇÃO EM TEMPO REAL (Firebase)
+// Cole aqui o objeto firebaseConfig do seu projeto.
+// Enquanto for null, o site funciona em modo local (sem sync).
+// ============================================================
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyCp222UPWugdl3a48bxvZYCBtTlr8efmw8",
+  authDomain: "bunker-gdd.firebaseapp.com",
+  databaseURL: "https://bunker-gdd-default-rtdb.firebaseio.com",
+  projectId: "bunker-gdd",
+  storageBucket: "bunker-gdd.firebasestorage.app",
+  messagingSenderId: "984116173922",
+  appId: "1:984116173922:web:859d4bf97efbb22809453b"
+};
+</script>
 <script>
 // ============================================================
 // TEMPLATES de inserção
@@ -682,8 +715,8 @@ function sectionEl(s, i) {
   title.contentEditable = 'true';
   title.spellcheck = false;
   title.textContent = s.t;
-  title.addEventListener('input', scheduleSave);
-  title.addEventListener('blur', () => { save(); renderNav(); });
+  title.addEventListener('input', () => { scheduleSave(); schedulePush(s.id); });
+  title.addEventListener('blur', () => { save(); renderNav(); flushPush(s.id); });
   title.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); title.blur(); } });
 
   const ctrl = document.createElement('div');
@@ -693,7 +726,7 @@ function sectionEl(s, i) {
   const del = cbtn('✕', 'excluir seção', () => {
     if (confirm('Excluir a seção "' + s.t + '"?')) {
       DOC.sections = DOC.sections.filter(x => x.id !== s.id);
-      render(); save();
+      render(); save(); collabRemove(s.id);
     }
   });
   del.classList.add('del');
@@ -706,8 +739,8 @@ function sectionEl(s, i) {
   body.contentEditable = 'true';
   body.spellcheck = false;
   body.innerHTML = s.c;
-  body.addEventListener('input', scheduleSave);
-  body.addEventListener('blur', save);
+  body.addEventListener('input', () => { scheduleSave(); schedulePush(s.id); });
+  body.addEventListener('blur', () => { save(); flushPush(s.id); });
 
   el.appendChild(head); el.appendChild(body);
   return el;
@@ -726,7 +759,7 @@ function moveSection(id, dir) {
   const j = i + dir;
   if (j < 0 || j >= DOC.sections.length) return;
   [DOC.sections[i], DOC.sections[j]] = [DOC.sections[j], DOC.sections[i]];
-  render(); save();
+  render(); save(); collabOrd();
   document.getElementById('sec-' + id).scrollIntoView({ block: 'center' });
 }
 
@@ -736,7 +769,7 @@ function addSection() {
   if (t === null) return;
   const s = { id: uid(), t: t || 'Nova seção', c: '<p>Escreva aqui...</p>' };
   DOC.sections.push(s);
-  render(); save();
+  render(); save(); collabAdd(s);
   document.getElementById('sec-' + s.id).scrollIntoView({ behavior: 'smooth', block: 'center' });
 }
 
@@ -811,7 +844,7 @@ function importJSON(input) {
       if (!d.sections || !Array.isArray(d.sections)) throw new Error('formato inválido');
       d.sections.forEach(s => { if (!s.id) s.id = uid(); });
       DOC = d;
-      render(); observeAll(); save();
+      render(); observeAll(); save(); collabReplaceAll();
     } catch (e) {
       alert('Arquivo inválido: ' + e.message);
     }
@@ -823,7 +856,234 @@ function restoreDefault() {
   if (!confirm('Restaurar o GDD padrão? Suas edições atuais serão PERDIDAS (exporte um backup antes, se quiser).')) return;
   DOC = JSON.parse(JSON.stringify(DEFAULT_DOC));
   DOC.sections.forEach(s => s.id = uid());
-  render(); observeAll(); save();
+  render(); observeAll(); save(); collabReplaceAll();
+}
+
+// ============================================================
+// COLABORAÇÃO EM TEMPO REAL
+// ============================================================
+const ROOM = 'gdd-principal';
+const collab = { on: false, secsRef: null, presRef: null, meRef: null };
+const PALETTE = ['#8dffa8', '#ffcf7d', '#8fd8ff', '#ff9ecb', '#c9a3ff', '#ffb36a', '#7dffd4', '#f0ff7d'];
+let myId = localStorage.getItem('bp40-uid');
+if (!myId) { myId = 'u' + Math.random().toString(36).slice(2, 10); localStorage.setItem('bp40-uid', myId); }
+let myName = localStorage.getItem('bp40-name') || null;
+const myColor = PALETTE[Math.abs(myId.split('').reduce((a, c) => a + c.charCodeAt(0), 0)) % PALETTE.length];
+
+let focusedSec = null;               // seção que EU estou editando agora
+const pendingRemote = {};            // updates remotos adiados enquanto edito
+let pendingRender = false;
+const pushTimers = {};
+
+document.addEventListener('focusin', e => {
+  const sec = e.target.closest ? e.target.closest('.section') : null;
+  const id = sec ? sec.dataset.id : null;
+  if (id !== focusedSec) { focusedSec = id; presencePush(); }
+});
+document.addEventListener('focusout', () => {
+  setTimeout(() => {
+    const ae = document.activeElement;
+    if (!ae || !ae.closest || !ae.closest('.section')) {
+      focusedSec = null;
+      applyPendingRemote();
+      presencePush();
+    }
+  }, 60);
+});
+
+function setCollabState(txt, on) {
+  const el = $('collabState');
+  el.textContent = txt;
+  el.classList.toggle('on', !!on);
+}
+
+function initCollab() {
+  if (!FIREBASE_CONFIG) { setCollabState('· modo local (sem tempo real)'); return; }
+  if (!window.firebase) { setCollabState('· sem conexão com o serviço de sync'); return; }
+  try {
+    firebase.initializeApp(FIREBASE_CONFIG);
+    const db = firebase.database();
+    collab.secsRef = db.ref('rooms/' + ROOM + '/sections');
+    collab.presRef = db.ref('rooms/' + ROOM + '/presence');
+
+    if (!myName) {
+      myName = (prompt('Como as outras pessoas devem te ver no documento?', 'Anônimo') || 'Anônimo').slice(0, 20);
+      localStorage.setItem('bp40-name', myName);
+    }
+
+    db.ref('.info/connected').on('value', s => {
+      if (s.val()) {
+        setCollabState('● tempo real ativo', true);
+        collab.meRef = collab.presRef.child(myId);
+        collab.meRef.onDisconnect().remove();
+        presencePush();
+      } else setCollabState('· reconectando...');
+    });
+
+    collab.secsRef.once('value').then(snap => {
+      const val = snap.val();
+      if (!val) {
+        // primeiro a chegar: publica o documento local
+        const seed = {};
+        DOC.sections.forEach((s, i) => seed[s.id] = { t: s.t, c: s.c, ord: i * 10 });
+        collab.secsRef.set(seed);
+        DOC.sections.forEach((s, i) => s.ord = i * 10);
+      } else {
+        // documento compartilhado já existe: ele é a fonte da verdade
+        DOC.sections = Object.entries(val)
+          .map(([id, v]) => ({ id, t: v.t, c: v.c, ord: v.ord || 0 }))
+          .sort((a, b) => a.ord - b.ord);
+        render(); observeAll(); save();
+      }
+      collab.on = true;
+      attachRemoteListeners();
+    });
+
+    collab.presRef.on('value', snap => renderPeers(snap.val() || {}));
+  } catch (e) {
+    setCollabState('· erro no sync: ' + e.message);
+  }
+}
+
+function attachRemoteListeners() {
+  collab.secsRef.on('child_added', snap => {
+    if (DOC.sections.some(s => s.id === snap.key)) return;
+    const v = snap.val();
+    DOC.sections.push({ id: snap.key, t: v.t, c: v.c, ord: v.ord || 0 });
+    DOC.sections.sort((a, b) => a.ord - b.ord);
+    deferredRender();
+  });
+  collab.secsRef.on('child_changed', snap => {
+    const s = DOC.sections.find(x => x.id === snap.key);
+    if (!s) return;
+    const v = snap.val();
+    const ordChanged = s.ord !== (v.ord || 0);
+    s.t = v.t; s.c = v.c; s.ord = v.ord || 0;
+    if (ordChanged) {
+      DOC.sections.sort((a, b) => a.ord - b.ord);
+      deferredRender();
+    } else patchDom(s);
+  });
+  collab.secsRef.on('child_removed', snap => {
+    DOC.sections = DOC.sections.filter(s => s.id !== snap.key);
+    delete pendingRemote[snap.key];
+    deferredRender();
+  });
+}
+
+// aplica update remoto na tela sem destruir o cursor de quem edita
+function patchDom(s) {
+  if (focusedSec === s.id) { pendingRemote[s.id] = true; return; }
+  const el = document.querySelector('.section[data-id="' + s.id + '"]');
+  if (!el) return;
+  const title = el.querySelector('.sec-title');
+  const body = el.querySelector('.sec-body');
+  if (title.textContent !== s.t) { title.textContent = s.t; renderNav(); }
+  if (body.innerHTML !== s.c) body.innerHTML = s.c;
+  scheduleLocalCache();
+}
+
+function applyPendingRemote() {
+  Object.keys(pendingRemote).forEach(id => {
+    delete pendingRemote[id];
+    const s = DOC.sections.find(x => x.id === id);
+    if (s) patchDom(s);
+  });
+  if (pendingRender) { pendingRender = false; render(); observeAll(); renderPeers(lastPeers); }
+}
+
+function deferredRender() {
+  if (focusedSec) { pendingRender = true; return; }
+  render(); observeAll(); renderPeers(lastPeers);
+  scheduleLocalCache();
+}
+
+let cacheTimer = null;
+function scheduleLocalCache() { clearTimeout(cacheTimer); cacheTimer = setTimeout(save, 800); }
+
+// ---- envio das minhas edições ----
+function schedulePush(id) {
+  if (!collab.on) return;
+  clearTimeout(pushTimers[id]);
+  pushTimers[id] = setTimeout(() => doPush(id), 350);
+}
+function flushPush(id) {
+  if (!collab.on) return;
+  clearTimeout(pushTimers[id]);
+  doPush(id);
+}
+function doPush(id) {
+  const el = document.querySelector('.section[data-id="' + id + '"]');
+  const s = DOC.sections.find(x => x.id === id);
+  if (!el || !s) return;
+  collab.secsRef.child(id).update({
+    t: el.querySelector('.sec-title').textContent.trim() || 'Sem título',
+    c: el.querySelector('.sec-body').innerHTML,
+    ord: s.ord != null ? s.ord : DOC.sections.indexOf(s) * 10
+  });
+}
+function collabAdd(s) {
+  if (!collab.on) return;
+  s.ord = DOC.sections.length * 10;
+  collab.secsRef.child(s.id).set({ t: s.t, c: s.c, ord: s.ord });
+}
+function collabRemove(id) {
+  if (!collab.on) return;
+  collab.secsRef.child(id).remove();
+}
+function collabOrd() {
+  if (!collab.on) return;
+  DOC.sections.forEach((s, i) => {
+    s.ord = i * 10;
+    collab.secsRef.child(s.id).update({ ord: s.ord });
+  });
+}
+function collabReplaceAll() {
+  if (!collab.on) return;
+  const all = {};
+  DOC.sections.forEach((s, i) => { s.ord = i * 10; all[s.id] = { t: s.t, c: s.c, ord: s.ord }; });
+  collab.secsRef.set(all);
+}
+
+// ---- presença ----
+function presencePush() {
+  if (!collab.meRef) return;
+  collab.meRef.set({ name: myName, color: myColor, editing: focusedSec || null, ts: Date.now() });
+}
+let lastPeers = {};
+function renderPeers(peers) {
+  lastPeers = peers;
+  const box = $('peers');
+  box.innerHTML = '';
+  Object.entries(peers).forEach(([id, p]) => {
+    const d = document.createElement('div');
+    d.className = 'peer';
+    d.style.background = p.color || '#8dffa8';
+    d.textContent = (p.name || '?')[0].toUpperCase();
+    d.title = p.name + (id === myId ? ' (você)' : '');
+    box.appendChild(d);
+  });
+  // etiquetas "fulano está editando" nas seções
+  document.querySelectorAll('.section').forEach(el => {
+    el.classList.remove('remote-editing');
+    const old = el.querySelector('.editors');
+    if (old) old.remove();
+    const editors = Object.entries(peers).filter(([id, p]) => id !== myId && p.editing === el.dataset.id);
+    if (editors.length) {
+      el.classList.add('remote-editing');
+      const wrap = document.createElement('div');
+      wrap.className = 'editors';
+      editors.forEach(([id, p]) => {
+        const tag = document.createElement('span');
+        tag.className = 'editorTag';
+        tag.style.background = p.color || '#ffcf7d';
+        tag.textContent = '✎ ' + (p.name || '?');
+        wrap.appendChild(tag);
+      });
+      const ctrl = el.querySelector('.sec-ctrl');
+      ctrl.parentNode.insertBefore(wrap, ctrl);
+    }
+  });
 }
 
 // ---------------- layout dinâmico ----------------
@@ -843,6 +1103,7 @@ load();
 render();
 observeAll();
 adjustLayout();
+initCollab();
 $('saveState').textContent = localStorage.getItem(LS_KEY) ? '✔ carregado do navegador' : 'documento padrão';
 window.addEventListener('beforeunload', save);
 </script>
