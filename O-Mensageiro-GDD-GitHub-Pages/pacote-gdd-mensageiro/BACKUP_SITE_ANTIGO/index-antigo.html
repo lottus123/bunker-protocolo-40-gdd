@@ -1,0 +1,1150 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GDD | BUNKER: PROTOCOLO 40</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Saira+Stencil+One&family=Special+Elite&family=Inter:wght@400;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0d0e0c; --panel:#111310; --panel2:#141713; --line:#22261f; --line2:#323830;
+  --green:#9fb98b; --green-dim:#5a6b4e; --amber:#d9a95f; --amber-dim:#8a6f45;
+  --red:#c2544a; --text:#d6dbd0; --muted:#8b948a;
+  --serif-title:'Special Elite',monospace;
+  --mono:'IBM Plex Mono',monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{
+  background:var(--bg); color:var(--text);
+  font-family:'Inter','Segoe UI',system-ui,sans-serif;
+  font-size:15.5px; line-height:1.65;
+}
+/* grão de filme + vinheta, bem sutis */
+body::before{
+  content:"";position:fixed;inset:0;pointer-events:none;z-index:200;opacity:.05;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+body::after{
+  content:"";position:fixed;inset:0;pointer-events:none;z-index:199;
+  background:radial-gradient(ellipse at 50% 40%, transparent 60%, rgba(0,0,0,.35) 100%);
+}
+::selection{background:#3d3423;color:#f2ead8}
+
+/* ---------- topo ---------- */
+#topbar{
+  position:fixed;top:0;left:0;right:0;min-height:54px;z-index:50;
+  background:rgba(13,14,12,.92);backdrop-filter:blur(4px);
+  border-bottom:1px solid var(--line);
+  display:flex;align-items:center;gap:12px;padding:8px 20px;flex-wrap:wrap;
+}
+#topbar .logo{
+  font-family:'Saira Stencil One',sans-serif;font-size:17px;letter-spacing:2px;
+  color:var(--text);white-space:nowrap;
+}
+#topbar .logo span{color:var(--amber)}
+#saveState{font-family:var(--mono);font-size:11px;color:var(--muted);margin-left:4px;min-width:100px}
+#topbar .spacer{flex:1}
+.tbtn{
+  background:transparent;color:var(--muted);border:1px solid var(--line2);
+  font-family:var(--mono);font-size:11px;letter-spacing:1px;text-transform:uppercase;
+  padding:6px 13px;cursor:pointer;border-radius:3px;white-space:nowrap;
+  transition:color .15s,border-color .15s;
+}
+.tbtn:hover{color:var(--amber);border-color:var(--amber-dim)}
+.tbtn.danger:hover{border-color:var(--red);color:var(--red)}
+
+/* ---------- barra de formatação ---------- */
+#fmtbar{
+  position:fixed;top:54px;left:280px;right:0;min-height:38px;z-index:40;
+  background:rgba(13,14,12,.92);backdrop-filter:blur(4px);
+  border-bottom:1px solid var(--line);
+  display:flex;align-items:center;gap:2px;padding:4px 24px;flex-wrap:wrap;
+}
+.fbtn{
+  background:transparent;color:var(--muted);border:1px solid transparent;
+  font-family:var(--mono);font-size:12px;padding:4px 10px;cursor:pointer;border-radius:3px;
+  white-space:nowrap;transition:color .15s;
+}
+.fbtn:hover{color:var(--amber);border-color:var(--line2)}
+.fbtn b{font-weight:600}
+.fsep{width:1px;height:16px;background:var(--line2);margin:0 8px;flex:none}
+#fmtbar .hint{margin-left:auto;font-family:var(--mono);font-size:10px;color:#565e54;white-space:nowrap}
+@media (max-width:1280px){#fmtbar .hint{display:none}}
+
+/* ---------- sidebar ---------- */
+#sidebar{
+  position:fixed;top:54px;left:0;bottom:0;width:280px;z-index:45;
+  background:transparent;border-right:1px solid var(--line);
+  display:flex;flex-direction:column;
+}
+#navSearch{
+  margin:14px 16px 10px;padding:7px 2px;background:transparent;
+  border:none;border-bottom:1px solid var(--line2);
+  color:var(--text);font-family:var(--mono);font-size:12px;outline:none;
+}
+#navSearch::placeholder{color:#565e54}
+#navSearch:focus{border-bottom-color:var(--amber-dim)}
+#navList{flex:1;overflow-y:auto;padding:0 8px 12px;scrollbar-width:thin;scrollbar-color:var(--line2) transparent}
+.navItem{
+  display:flex;align-items:center;gap:8px;
+  padding:6px 10px;margin:1px 0;cursor:pointer;border-radius:3px;
+  color:var(--muted);font-size:13px;border-left:2px solid transparent;
+  transition:color .15s;
+}
+.navItem:hover{color:var(--text)}
+.navItem.active{border-left-color:var(--amber);color:var(--text);background:rgba(217,169,95,.05)}
+.navItem .num{font-family:var(--mono);color:#565e54;font-size:10px;min-width:20px}
+#addSection{margin:10px 16px 16px;border-style:dashed;text-align:center}
+
+/* ---------- conteúdo ---------- */
+#main{margin-left:280px;padding:120px 48px 140px;max-width:960px}
+.section{
+  background:var(--panel);border:1px solid var(--line);border-radius:5px;
+  margin-bottom:26px;position:relative;
+}
+.sec-head{
+  display:flex;align-items:center;gap:12px;
+  padding:16px 24px 12px;border-bottom:1px solid var(--line);
+}
+.sec-head .num{font-family:var(--mono);font-size:11px;color:#565e54;flex:none}
+.sec-title{
+  flex:1;font-family:var(--serif-title);font-size:19px;color:var(--text);
+  outline:none;line-height:1.4;min-width:60px;letter-spacing:.5px;
+}
+.sec-title:focus{color:var(--amber)}
+.sec-ctrl{display:flex;gap:4px;opacity:0;transition:opacity .15s;flex:none}
+.section:hover .sec-ctrl{opacity:.8}
+.cbtn{
+  background:transparent;color:var(--muted);border:1px solid var(--line2);width:25px;height:25px;
+  cursor:pointer;font-size:12px;border-radius:3px;line-height:1;
+}
+.cbtn:hover{color:var(--amber);border-color:var(--amber-dim)}
+.cbtn.del:hover{color:var(--red);border-color:var(--red)}
+.sec-body{padding:20px 26px 26px;outline:none;min-height:40px}
+.sec-body:focus{box-shadow:inset 2px 0 0 var(--amber-dim)}
+
+/* tipografia do conteúdo */
+.sec-body h3{
+  font-family:var(--serif-title);font-weight:400;color:var(--amber);
+  font-size:16px;margin:24px 0 8px;letter-spacing:.4px;
+}
+.sec-body h3:first-child{margin-top:0}
+.sec-body h4{color:var(--text);font-size:14.5px;font-weight:600;margin:16px 0 6px}
+.sec-body p{margin:0 0 10px}
+.sec-body ul,.sec-body ol{margin:0 0 12px 22px}
+.sec-body li{margin-bottom:5px}
+.sec-body b,.sec-body strong{color:#f0f2ec;font-weight:600}
+.sec-body em{color:#c4cbbe}
+.sec-body table{border-collapse:collapse;width:100%;margin:12px 0 16px;font-size:13.5px}
+.sec-body th{
+  background:transparent;color:var(--muted);text-align:left;padding:8px 10px;
+  border:none;border-bottom:1px solid var(--line2);
+  font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:.8px;font-weight:500;
+}
+.sec-body td{padding:8px 10px;border:none;border-bottom:1px solid var(--line);vertical-align:top}
+.sec-body tr:nth-child(even) td{background:transparent}
+.callout{
+  border:none;border-left:2px solid var(--amber);
+  background:rgba(217,169,95,.05);padding:13px 18px;margin:14px 0;border-radius:0 4px 4px 0;
+}
+.callout.green{border-left-color:var(--green);background:rgba(159,185,139,.05)}
+.callout.red{border-left-color:var(--red);background:rgba(194,84,74,.05)}
+.tag{
+  display:inline-block;background:transparent;border:1px solid var(--line2);color:var(--muted);
+  font-family:var(--mono);font-size:11px;padding:2px 10px;border-radius:3px;margin:0 4px 5px 0;
+}
+.kv{color:var(--muted)}
+.kv b{color:var(--green);font-weight:600}
+hr{border:none;border-top:1px dashed var(--line2);margin:20px 0}
+.ficha{
+  border:1px dashed var(--line2);border-radius:4px;padding:16px 20px 12px;margin:16px 0;
+  background:rgba(255,255,255,.012);position:relative;
+}
+.ficha::after{
+  content:"DOSSIÊ";position:absolute;top:10px;right:14px;
+  font-family:var(--mono);font-size:9px;letter-spacing:2px;color:#565e54;
+}
+.ficha h4{
+  margin-top:0!important;font-family:var(--serif-title);font-weight:400;
+  color:var(--text)!important;font-size:16px!important;letter-spacing:.3px;
+}
+
+/* ---------- colaboração ---------- */
+#peers{display:flex;gap:5px;align-items:center}
+.peer{
+  width:23px;height:23px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+  font-size:11px;font-weight:700;color:#0d0e0c;cursor:default;opacity:.9;
+}
+#collabState{font-family:var(--mono);font-size:10px;letter-spacing:.5px;color:var(--muted);white-space:nowrap}
+#collabState.on{color:var(--green)}
+.editors{display:flex;gap:4px;flex:none}
+.editorTag{
+  font-family:var(--mono);font-size:10px;padding:2px 9px;border-radius:3px;
+  color:#0d0e0c;font-weight:600;white-space:nowrap;animation:pulseTag 1.8s ease-in-out infinite;
+}
+@keyframes pulseTag{50%{opacity:.5}}
+.section.remote-editing{border-color:var(--amber-dim)}
+
+/* ---------- impressão ---------- */
+@media print{
+  body{background:#fff;color:#111;font-size:12px}
+  #topbar,#fmtbar,#sidebar,.sec-ctrl,#addSection{display:none!important}
+  #main{margin:0;padding:0;max-width:none}
+  .section{background:#fff;border:none;box-shadow:none;page-break-inside:avoid;margin-bottom:14px}
+  .sec-head{background:#fff;border-bottom:2px solid #333}
+  .sec-title{color:#000}
+  .sec-body h3{color:#333}
+  .sec-body h4{color:#222}
+  .sec-body b{color:#000}
+  .sec-body th{background:#eee;color:#000}
+  .sec-body tr:nth-child(even) td{background:#f7f7f7}
+  .callout{background:#f5f0e0;border-color:#999}
+  .callout.green{background:#eef7ee}
+  .ficha{background:#fafafa}
+  .tag{background:#eee;color:#333;border-color:#999}
+  .kv b{color:#000}
+}
+@media (max-width:900px){
+  #sidebar{display:none}
+  #fmtbar{left:0}
+  #main{margin-left:0;padding:120px 16px}
+}
+</style>
+</head>
+<body>
+
+<div id="topbar">
+  <div class="logo">BUNKER <span>PROTOCOLO 40</span></div>
+  <div style="font-family:var(--mono);font-size:9px;letter-spacing:2px;color:#565e54;white-space:nowrap">DOCUMENTO DE DESIGN</div>
+  <div id="saveState">...</div>
+  <div id="collabState"></div>
+  <div id="peers"></div>
+  <div class="spacer"></div>
+  <button class="tbtn" onclick="exportJSON()">Exportar</button>
+  <button class="tbtn" onclick="document.getElementById('importFile').click()">Importar</button>
+  <input type="file" id="importFile" accept=".json" style="display:none" onchange="importJSON(this)">
+  <button class="tbtn" onclick="window.print()">PDF</button>
+  <button class="tbtn danger" onclick="restoreDefault()">Resetar</button>
+</div>
+
+<div id="fmtbar">
+  <button class="fbtn" onmousedown="fmt(event,'bold')"><b>B</b></button>
+  <button class="fbtn" onmousedown="fmt(event,'italic')"><i>I</i></button>
+  <button class="fbtn" onmousedown="fmt(event,'underline')"><u>U</u></button>
+  <div class="fsep"></div>
+  <button class="fbtn" onmousedown="fmtBlock(event,'H3')">H3</button>
+  <button class="fbtn" onmousedown="fmtBlock(event,'H4')">H4</button>
+  <button class="fbtn" onmousedown="fmtBlock(event,'P')">¶</button>
+  <div class="fsep"></div>
+  <button class="fbtn" onmousedown="fmt(event,'insertUnorderedList')">• Lista</button>
+  <button class="fbtn" onmousedown="fmt(event,'insertOrderedList')">1. Lista</button>
+  <div class="fsep"></div>
+  <button class="fbtn" onmousedown="insertHTMLAtCursor(event, TPL.table)">Tabela</button>
+  <button class="fbtn" onmousedown="insertHTMLAtCursor(event, TPL.callout)">Destaque</button>
+  <button class="fbtn" onmousedown="insertHTMLAtCursor(event, TPL.calloutGreen)">Regra</button>
+  <button class="fbtn" onmousedown="insertHTMLAtCursor(event, TPL.ficha)">Ficha</button>
+  <button class="fbtn" onmousedown="insertHTMLAtCursor(event, '<hr>')">Separador</button>
+  <div class="fsep"></div>
+  <button class="fbtn" onmousedown="fmt(event,'removeFormat')">Limpar</button>
+  <span class="hint">Clique em qualquer texto para editar · tudo salva automaticamente</span>
+</div>
+
+<div id="sidebar">
+  <input id="navSearch" placeholder="filtrar seções..." oninput="renderNav()">
+  <div id="navList"></div>
+  <button class="tbtn" id="addSection" onclick="addSection()">+ Nova seção</button>
+</div>
+
+<div id="main"></div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+<script>
+// ============================================================
+// CONFIGURAÇÃO DA COLABORAÇÃO EM TEMPO REAL (Firebase)
+// Cole aqui o objeto firebaseConfig do seu projeto.
+// Enquanto for null, o site funciona em modo local (sem sync).
+// ============================================================
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyCp222UPWugdl3a48bxvZYCBtTlr8efmw8",
+  authDomain: "bunker-gdd.firebaseapp.com",
+  databaseURL: "https://bunker-gdd-default-rtdb.firebaseio.com",
+  projectId: "bunker-gdd",
+  storageBucket: "bunker-gdd.firebasestorage.app",
+  messagingSenderId: "984116173922",
+  appId: "1:984116173922:web:859d4bf97efbb22809453b"
+};
+</script>
+<script>
+// ============================================================
+// TEMPLATES de inserção
+// ============================================================
+const TPL = {
+  table: '<table><tr><th>Coluna 1</th><th>Coluna 2</th><th>Coluna 3</th></tr><tr><td>...</td><td>...</td><td>...</td></tr><tr><td>...</td><td>...</td><td>...</td></tr></table><p></p>',
+  callout: '<div class="callout">Texto de destaque...</div><p></p>',
+  calloutGreen: '<div class="callout green"><b>REGRA:</b> texto da regra...</div><p></p>',
+  ficha: '<div class="ficha"><h4>Nome, idade, profissão</h4><p><span class="kv"><b>Função:</b></span> ...</p><p><span class="kv"><b>Demanda:</b></span> ...</p></div><p></p>'
+};
+
+// ============================================================
+// CONTEÚDO PADRÃO DO GDD
+// ============================================================
+const DEFAULT_DOC = { title: 'BUNKER: PROTOCOLO 40', sections: [
+
+{ t: 'Visão Geral', c: `
+<div class="callout"><b>A ideia em uma frase:</b> pegue a tensão de <i>Papers, Please</i>, misture com a atenção dividida de <i>FNAF</i> e acrescente o detalhe que muda tudo: o impostor talvez já esteja dentro do abrigo. Você opera o rádio de um bunker e decide quem entra. Na primeira metade do jogo, a pergunta é "quem deve entrar?". Na segunda, ela vira "em quem eu ainda posso confiar?".</div>
+<p><span class="kv"><b>Gênero:</b></span> dedução social com horror psicológico, no formato de simulação de posto de controle.</p>
+<p><span class="kv"><b>Plataforma:</b></span> PC (Steam). O protótipo está em HTML e a produção final vai para a Unity.</p>
+<p><span class="kv"><b>Duração:</b></span> a campanha tem 6 noites, algo entre 3 e 4 horas no total. Cada noite dura de 25 a 40 minutos. Depois da campanha, abre um modo infinito com seed diária.</p>
+<p><span class="kv"><b>Público:</b></span> quem gostou de Papers Please, That's Not My Neighbor e Obra Dinn, e o público que assiste streamers de terror.</p>
+<p><span class="kv"><b>Referências:</b></span> <span class="tag">Papers, Please</span> <span class="tag">That's Not My Neighbor</span> <span class="tag">Return of the Obra Dinn</span> <span class="tag">FNAF</span> <span class="tag">Do Not Feed the Monkeys</span> <span class="tag">Buckshot Roulette (pela viralização)</span></p>
+<h3>Os 4 pilares do design</h3>
+<ol>
+<li><b>Dedução justa.</b> Toda cópia deixa pistas que o jogador teve como perceber. Se ele errou, foi desatenção, nunca sorteio. É isso que faz alguém querer jogar de novo em vez de largar o jogo com raiva.</li>
+<li><b>Acusar é apostar.</b> Confrontar alguém tem custo e consequência. O jogo nunca dá certeza, só convicção. E convicção tem preço.</li>
+<li><b>A paranoia vira para dentro.</b> Nenhum jogo do gênero faz isso: lá pela metade da campanha, o problema deixa de ser a porta e passa a ser o salão. O perigo já entrou. Talvez pelas suas próprias mãos.</li>
+<li><b>Medo sem sustos baratos.</b> Zero jumpscare aleatório. O medo vem do que você ouve e não vê, do que a câmera quase mostrou, e das suas decisões antigas voltando para te assombrar.</li>
+</ol>
+<h3>Por que esse jogo se destaca</h3>
+<ul>
+<li>As histórias dos visitantes são geradas com furos plantados. Ninguém decora solução, todo mundo precisa deduzir.</li>
+<li>O momento em que a máscara desliza: confrontar uma cópia com a contradição certa arranca dela uma resposta errada demais. É o clipe que as pessoas vão compartilhar.</li>
+<li>Atenção dividida entre a porta e o salão: a segunda metade do jogo acontece em duas telas ao mesmo tempo.</li>
+<li>No fim de cada run, o jogo revela quem era cópia. É combustível para discussão, teoria e replay ("eu SABIA que era ela!").</li>
+</ul>` },
+
+{ t: 'Narrativa e Mundo', c: `
+<h3>O apagão</h3>
+<p>Quarenta horas atrás, o mundo inteiro desmaiou ao mesmo tempo. Aviões caíram, cirurgias pararam no meio, carros seguiram sem motorista. Ninguém sabe por quê. E ninguém sabe se vai acontecer de novo.</p>
+<p>Oito horas depois do apagão, uma parte das pessoas acordou antes das outras. Essas pessoas passaram trinta e duas horas andando por um mundo parado, silencioso, quase irreal. Quando o resto de nós finalmente abriu os olhos, percebemos uma coisa: <b>quem acordou primeiro já não era exatamente a mesma pessoa.</b></p>
+<h3>As Cópias</h3>
+<ul>
+<li>Elas sabem o que são. Não duvidam, não entram em crise, não hesitam sobre a própria existência.</li>
+<li>Para elas, existe uma única certeza: nós somos o defeito. Emotivos demais, inconsistentes, perigosos. O plano delas é simples: nos substituir, uma pessoa de cada vez.</li>
+<li>Aprendem assustadoramente rápido. Observam como a gente fala, age e reage, e imitam quase tudo.</li>
+<li><b>A falha central:</b> elas entendem perfeitamente o que um humano diz. Mas não entendem o que um humano sente.</li>
+<li><b>A falha nova (adicionada no redesign):</b> elas sabem demais. Passaram trinta e duas horas andando pelo mundo parado e viram coisas que ninguém dormindo poderia ter visto. Saber demais é tão suspeito quanto saber de menos.</li>
+</ul>
+<h3>O Operador</h3>
+<p>Você não tem rosto, não tem passado, não tem nome. É só a pessoa do rádio de um bunker subterrâneo. Toda noite chegam transmissões de gente desesperada pedindo para entrar. Algumas são humanas de verdade. Outras só parecem ser. E quem decide é você: sem confirmação, sem garantia e sem segunda chance.</p>
+<h3>A verdade, contada em pedaços</h3>
+<p>A causa do apagão nunca é explicada de uma vez. Ela chega em fragmentos: transmissões que o Osvaldo decodifica no rádio, frases soltas de cópias desmascaradas, papéis que os visitantes carregam. Por isso o final tem duas camadas separadas: você <i>sobreviveu</i>? E você <i>entendeu</i> o que aconteceu?</p>
+<div class="callout"><b>AINDA VAMOS DECIDIR: a verdade por trás do apagão.</b> Três hipóteses na mesa, escolher uma na produção:<br>
+1. <b>Triagem:</b> o apagão foi uma varredura. Alguma coisa mapeou a humanidade enquanto dormia e fabricou cópias dos espécimes mais úteis. As oito horas de diferença foram o tempo de fabricação.<br>
+2. <b>Sincronização que falhou:</b> TODO MUNDO deveria ter sido substituído nas quarenta horas. O processo foi interrompido no meio. As cópias que existem são a metade que deu certo, e agora tentam terminar o serviço.<br>
+3. <b>Origem humana:</b> um projeto nosso, de backup de consciências, que despertou sozinho durante o apagão e chegou à conclusão de que o defeito são os originais.</div>` },
+
+{ t: 'Loop de Gameplay', c: `
+<h3>O loop de uma noite</h3>
+<ol>
+<li><b>Boletim de rádio.</b> Antes da fila abrir, a rádio oficial passa os fatos da noite (clima, rotas bloqueadas, eventos). Tudo entra no Caderno. Essa é a munição inicial da dedução.</li>
+<li><b>A fila.</b> Os visitantes esperam lá fora, e dá para ver o estado de cada um (estável, ferido, hipotermia). Quem atender primeiro é escolha sua.</li>
+<li><b>Interrogatório.</b> Perguntas, ferramentas e testemunhos geram fatos no Caderno. Tudo custa tempo, bateria, ou os dois.</li>
+<li><b>PRESSIONAR</b> (opcional, uma vez por visitante). Você confronta a pessoa com dois fatos que se contradizem. Aposta de alto risco.</li>
+<li><b>Decisão:</b> OPEN, DENY ou HOLD.</li>
+<li><b>Interrupções internas.</b> A partir da noite 3, a câmera do salão começa a pedir sua atenção no meio do expediente.</li>
+<li><b>Fim da noite:</b> relatório, pagamento, loja e a gestão do salão (conversar com os moradores, atender demandas, expulsar alguém se for o caso).</li>
+</ol>
+<h3>O loop da campanha</h3>
+<p>Quem você aceita, fica. E cada morador muda o bunker para sempre: traz benefícios, demandas, conflitos e, às vezes, uma cópia. As noites 1 a 3 são sobre a porta. As noites 4 a 6 são sobre o salão. E a confiança do grupo em você (que é invisível) tempera tudo.</p>
+<div class="callout green"><b>REGRA DE OURO:</b> nenhuma ferramenta, leitura ou testemunho entrega veredicto. Eles entregam <i>fatos</i>. Quem conclui é sempre o jogador. E a responsabilidade é dele também.</div>` },
+
+{ t: 'Motor de Contradições', c: `
+<p>O coração do jogo. Em vez de diálogos fixos que o jogador decora, cada visitante conta uma história <b>montada por cima de um mundo com fatos verificáveis</b>.</p>
+<h3>O estado do mundo (gerado a cada run)</h3>
+<ul>
+<li><b>Clima por período:</b> "choveu das 18h às 23h, depois da meia-noite caiu granizo".</li>
+<li><b>Geografia:</b> setores e rotas com eventos. "A ponte norte caiu na hora do apagão", "o túnel da linha 2 alagou na noite 1".</li>
+<li><b>Eventos públicos:</b> "a sirene tocou três vezes", "um helicóptero caiu no centro".</li>
+<li><b>Rede social:</b> quem trabalhava com quem, quem morava onde, apelidos, detalhes íntimos.</li>
+</ul>
+<h3>De onde o jogador tira informação</h3>
+<ol>
+<li>Do <b>boletim de rádio</b> no começo da noite (fatos públicos).</li>
+<li>Dos <b>moradores</b>, que contam coisas espontaneamente ou quando consultados ("eu vim pelo túnel, ainda estava seco").</li>
+<li>Dos <b>interrogatórios anteriores</b>. Tudo que qualquer visitante já alegou fica registrado.</li>
+</ol>
+<h3>Como a história de cada visitante é montada</h3>
+<ul>
+<li><b>Humano:</b> a história bate com o mundo, mas vem com ruído humano. Erra o horário em uma hora, usa "acho que", se corrige no meio da frase. Impreciso, sim. Impossível, nunca.</li>
+<li><b>Cópia:</b> a história é 95% perfeita, com <b>um ou dois furos objetivos</b> plantados. O tipo de furo escala com a noite.</li>
+</ul>
+<h3>Tipos de furo por noite (é a curva de dificuldade)</h3>
+<table>
+<tr><th>Noite</th><th>Tipo de furo</th><th>Exemplo</th><th>Como pegar</th></tr>
+<tr><td>1</td><td>Contra um fato público</td><td>"Atravessei a ponte norte ontem", mas a ponte caiu no apagão</td><td>Prestar atenção no boletim</td></tr>
+<tr><td>2</td><td>Contra geografia e tempo</td><td>"Cheguei seco pelo túnel às 2h", mas o túnel alagou e choveu até as 23h</td><td>Anotar e cruzar</td></tr>
+<tr><td>3</td><td>Contra um testemunho</td><td>Diz que fazia o turno da noite, mas um morador sabe que era do dia</td><td>Conversar com quem está dentro</td></tr>
+<tr><td>4 e 5</td><td>Interno</td><td>A resposta da pergunta 3 contradiz o que a pessoa disse na pergunta 1</td><td>Memória e Caderno</td></tr>
+<tr><td>5 e 6</td><td><b>Por excesso</b></td><td>Descreve como a cidade estava DURANTE o apagão. Como você viu isso se estava dormindo?</td><td>Perguntas armadilha</td></tr>
+</table>
+<div class="callout green"><b>REGRA DE OURO:</b> todo furo é detectável com informação que o jogador teve como acessar. Se errou, foi desatenção, nunca sorteio. (É a justiça de Obra Dinn e Papers, Please, e é inegociável.)</div>
+<h3>Perguntas armadilha</h3>
+<p>Com o tempo, o jogador aprende a plantar iscas: "como estava o céu quando você desmaiou?", "que barulho a sirene fazia?". Um humano responde com aquela imprecisão emocional de quem viveu a coisa. Uma cópia ou não sabe (e finge muito mal que "acordou depois") ou sabe demais.</p>
+<div class="callout"><b>Contra a decoreba:</b> os furos são combinações de fato do mundo, personagem e noite. Guia de wiki não resolve o jogo. O modo de seed diária usa o mesmo gerador.</div>` },
+
+{ t: 'Interrogatório e PRESSIONAR', c: `
+<h3>O interrogatório</h3>
+<p>Perguntas em árvore rasa: três ou quatro perguntas base e follow-ups que fazem referência ao que a pessoa já respondeu. Cada resposta gera de um a três fatos no Caderno. Perguntar custa tempo, e a fila lá fora não melhora sozinha.</p>
+<h3>PRESSIONAR, a aposta central do jogo</h3>
+<p>No Caderno, o jogador marca <b>dois fatos que se contradizem</b> e joga na cara do visitante. <b>Só uma tentativa por visitante.</b> Custa 20 minutos.</p>
+<table>
+<tr><th>Situação</th><th>O que acontece</th></tr>
+<tr><td>A contradição é real e a pessoa é cópia</td><td><b>A máscara desliza.</b> Não é uma confissão. É algo errado demais: ela repete, palavra por palavra, a frase de outro visitante de duas noites atrás. Ou sorri. Ou diz "isso não é relevante para a minha entrada". Vai embora sem discutir. <b>E as próximas cópias param de cometer aquele tipo de furo.</b> Elas aprendem com o que você descobre.</td></tr>
+<tr><td>A contradição é real, mas a pessoa é humana</td><td>Ela desaba e explica: trauma, memória falha, ou uma mentira por vergonha ("eu roubei o casaco de um corpo, tá? Por isso enrolei"). Você não sai com certeza nenhuma. Sai com um fato novo e com a culpa. Humanos também se contradizem, e é essa dúvida que sustenta o jogo inteiro.</td></tr>
+<tr><td>A "contradição" nem existia</td><td>Você queimou seu único PRESSIONAR com aquela pessoa, e ela se fecha. Respostas curtas dali em diante.</td></tr>
+</table>
+<div class="callout"><b>O clipe de stream:</b> a resposta da máscara deslizando é o momento mais compartilhável do jogo. Cada cópia precisa de duas ou três variações de resposta errada demais, todas ditas com uma calma absoluta. Vale investir pesado em escrita e som aqui.</div>` },
+
+{ t: 'Tempo, Fila e Bateria', c: `
+<h3>Tempo por ações</h3>
+<p>A noite tem <b>6 horas fictícias (360 minutos)</b>. Não existe relógio correndo de verdade: cada ação desconta minutos. Assim o jogador lê com calma, mas cada escolha pesa. "Gasto meia hora num testemunho ou atendo mais uma pessoa?"</p>
+<table>
+<tr><th>Ação</th><th>Tempo</th><th>Bateria</th></tr>
+<tr><td>Pergunta ou follow-up</td><td>10 min</td><td>2</td></tr>
+<tr><td>Ferramenta biométrica</td><td>15 min</td><td>8 a 10</td></tr>
+<tr><td>Holofote</td><td>5 min</td><td>5</td></tr>
+<tr><td>Silêncio forçado</td><td>15 min</td><td>6</td></tr>
+<tr><td>Estímulo súbito</td><td>10 min</td><td>12</td></tr>
+<tr><td>Cruzamento de testemunhos</td><td>30 min</td><td>15</td></tr>
+<tr><td>PRESSIONAR</td><td>20 min</td><td>nada</td></tr>
+<tr><td>Checar a câmera interna</td><td>5 min</td><td>3</td></tr>
+<tr><td>HOLD (devolver para a fila)</td><td>nada</td><td>3</td></tr>
+</table>
+<h3>A fila tem estado</h3>
+<p>Cada pessoa esperando tem uma condição visível que piora com o tempo: <b>estável, depois ferida, depois hipotermia, depois crítica</b>. Se a noite acabar com gente na fila, o jogador <i>ouve</i> o que acontece com elas. Escolher a ordem de atendimento vira estratégia: atende primeiro o que está morrendo ou o que parece suspeito?</p>
+<h3>Bateria</h3>
+<ul>
+<li>Recarrega a cada noite (100 por padrão, modificada por eventos, sabotagem e pelo engenheiro).</li>
+<li>As ferramentas e os sistemas consomem. <b>Se zerar, as travas soltam e é game over na hora</b>, com a fila inteira entrando de uma vez.</li>
+<li>São duas pressões diferentes: o tempo é o recurso da dedução, a bateria é o recurso da paranoia.</li>
+</ul>` },
+
+{ t: 'Ferramentas', c: `
+<div class="callout green"><b>REGRA:</b> biometria é <b>evidência fraca</b>. Ela gera um fato no Caderno ("pulso estável demais"), nunca um veredicto. Toda leitura tem um falso positivo plausível (hipotermia, choque, treinamento militar) e as cópias aprendem a enganar os sensores conforme as noites passam.</div>
+<table>
+<tr><th>Ferramenta</th><th>O que ela entrega</th><th>Onde ela engana</th><th>Como as cópias se adaptam</th></tr>
+<tr><td>Pulseira de Pulsação</td><td>BPM e variabilidade, com ECG na tela</td><td>Hipotermia e exaustão achatam o pulso de um humano</td><td>Da noite 3 em diante, simulam variação</td></tr>
+<tr><td>Scanner Térmico</td><td>Temperatura corporal</td><td>Uma onda de frio derruba humanos para 33 ou 34 graus</td><td>Se aquecem de propósito antes de chegar</td></tr>
+<tr><td>Analisador de Voz</td><td>Hesitações por minuto e microtremor</td><td>Choque e treinamento militar apagam a emoção da voz</td><td>Cada uso ensina; começam a inserir pausas falsas</td></tr>
+<tr><td>Holofote</td><td>Descrição visual: roupas, feridas, gestos</td><td>Leitura subjetiva, luz ruim</td><td>Feridas cenográficas, roupas molhadas de propósito</td></tr>
+<tr><td>Código de Verificação</td><td>Sabe ou não sabe a senha rotativa</td><td>Prova ACESSO, não humanidade</td><td>Roubam o código observando grupos de sobreviventes</td></tr>
+<tr><td>Estímulo Súbito</td><td>Reflexo imediato ou atrasado</td><td>Pode quebrar um humano traumatizado (custo social alto). Uma vez por noite</td><td>O atraso diminui, mas nunca some. É o sinal mais confiável do jogo</td></tr>
+<tr><td>Silêncio Forçado</td><td>Reação ao corte de áudio</td><td>Humano em choque também congela</td><td>Depois de caírem duas vezes, encenam desespero</td></tr>
+<tr><td>Câmera de Fila</td><td>Comportamento de quem espera, sem saber que é observado</td><td>Interpretação livre</td><td>Imitam os gestos de quem está na frente</td></tr>
+<tr><td>Cruzamento de Testemunhos</td><td>Um fato social profundo. A ferramenta mais forte do jogo</td><td>Memória falha, afeto cega. E <b>se o morador chamado for cópia, ele sabota</b></td><td>Estudam os alvos antes de chegar na porta</td></tr>
+</table>
+<p>Todas as ferramentas ficam na loja desde a primeira noite. A progressão é de domínio, não de desbloqueio.</p>` },
+
+{ t: 'O Caderno (UI central)', c: `
+<p>O painel lateral que funciona como a mesa de trabalho da dedução.</p>
+<h3>As abas</h3>
+<ul>
+<li><b>MUNDO:</b> os boletins de rádio e os fatos públicos, noite a noite.</li>
+<li><b>VISITANTES:</b> cada alegação de cada visitante, linha por linha, com hora e noite.</li>
+<li><b>SALÃO:</b> o que os moradores contaram e o que a câmera interna flagrou.</li>
+</ul>
+<h3>Como funciona</h3>
+<ul>
+<li>Os fatos entram <b>sozinhos</b> quando são ditos ou lidos (como o diário de Obra Dinn). O trabalho do jogador é CRUZAR, não transcrever.</li>
+<li>Cada fato é clicável. Selecionou dois e apertou CONFRONTAR? Isso é o PRESSIONAR.</li>
+<li>Fatos usados em confrontos ficam marcados de verde ou vermelho.</li>
+<li>Tem busca por texto. Nas noites 4 a 6, com o caderno cheio, ela vira questão de sobrevivência.</li>
+</ul>
+<div class="callout"><b>Decisão de UX importante:</b> o Caderno não julga. Ele nunca destaca contradições sozinho, senão o jogo se joga sem o jogador. No máximo, um contador discreto de quantos fatos cada visitante gerou.</div>` },
+
+{ t: 'O Bunker Vivo (interior)', c: `
+<h3>Confiança oculta</h3>
+<p>Um número invisível, de 0 a 100, que o jogador nunca vê. Ele sente. Com confiança alta, os moradores colaboram, aceitam testemunhar e contam coisas espontaneamente. Com confiança baixa, escondem informação, se recusam a ajudar, acusam uns aos outros e começam a questionar você em voz alta.</p>
+<h3>Demandas: personagens que querem coisas</h3>
+<p>Todo benefício mecânico vem embrulhado numa exigência. Ninguém ajuda de graça. É isso que transforma uma ficha de atributos numa pessoa. (As demandas de cada um estão na seção Personagens.)</p>
+<h3>As interrupções da câmera interna (a partir da noite 3)</h3>
+<ul>
+<li>No meio do expediente, a câmera do salão mostra algo errado por <b>uns 3 segundos</b>: alguém parado no escuro olhando a lente, um morador que não está no quadro às 3h da manhã, uma porta interna aberta.</li>
+<li>Se o jogador clicar a tempo, o fato entra no Caderno ("Rafael saiu do salão às 2h40").</li>
+<li>O custo é atenção: enquanto você olha o salão, o visitante continua falando. E o que foi dito sem você prestar atenção não entra no Caderno.</li>
+</ul>
+<h3>Expulsão é investigação, não botão</h3>
+<p>O jogador junta fatos internos (câmera, conversas, sabotagens) e decide. E as consequências não são simétricas:</p>
+<ul>
+<li><b>Expulsou uma cópia:</b> as sabotagens param e o clima melhora. Mas quem gostava dela acabou de assistir a um assassinato, na visão deles.</li>
+<li><b>Expulsou um humano:</b> luto, confiança despencando, testemunhas que nunca mais colaboram. E a vaga aberta te dá aquela coceira de aceitar o próximo da fila com menos cuidado.</li>
+</ul>
+<h3>O que uma cópia infiltrada faz de noite</h3>
+<table>
+<tr><th>Noite</th><th>Ação possível</th><th>Contramedida</th></tr>
+<tr><td>2 em diante</td><td>Sabotagem (menos 10 de bateria máxima na noite seguinte)</td><td>O Tomás conserta, se estiver vivo e de bem com você</td></tr>
+<tr><td>3 em diante</td><td>Envenenar testemunhos, dando passe livre para outras cópias</td><td>Cruzar o testemunho de dois moradores diferentes</td></tr>
+<tr><td>4 em diante</td><td>Assassinato durante a madrugada (o corpo aparece na câmera)</td><td>A Cláudia reduz a chance; a câmera flagra pistas</td></tr>
+<tr><td>5 em diante</td><td>Incriminar um humano, plantando evidência falsa</td><td>Só dedução mesmo</td></tr>
+</table>` },
+
+{ t: 'Personagens', c: `
+<h3>Princípios</h3>
+<ul>
+<li>Cada personagem tem 5 camadas: <b>Identidade, Utilidade, Personalidade, Relações e Estado Oculto</b> (humano ou cópia, sorteado a cada run).</li>
+<li>Toda vantagem vem com uma demanda que cria dilema. Ninguém é "só bom".</li>
+<li>O jogador decide sobre <i>pessoas</i>, não sobre números. Expulsar alguém não é remover um médico do inventário. É colocar na chuva uma pessoa que talvez seja inocente.</li>
+</ul>
+<h3>O elenco fixo (7)</h3>
+<div class="ficha"><h4>Cláudia Moreira, 43 anos, cirurgiã</h4>
+<p><span class="kv"><b>Arquétipo:</b></span> racional demais. Parece cópia mesmo quando é humana.</p>
+<p><span class="kv"><b>Utilidade:</b></span> reduz mortes internas e examina feridos da fila (um fato biométrico de graça).</p>
+<p><span class="kv"><b>Demanda:</b></span> se recusa a tratar o ferido da noite enquanto você não expulsar quem ela acusa de ser cópia. E aí? Ela está certa? É paranoia? Ou é <i>ela</i> a cópia, limpando o caminho?</p>
+<p><span class="kv"><b>Se for cópia:</b></span> vira a pessoa mais indispensável do bunker e vai insinuando que os outros moradores são instáveis. Diagnósticos falsos.</p>
+<p><span class="kv"><b>Relações:</b></span> desconfia do Rafael; protege a Lia, do jeito frio dela.</p></div>
+<div class="ficha"><h4>Rafael Torres, 39 anos, ex-policial</h4>
+<p><span class="kv"><b>Arquétipo:</b></span> o autoritário. Às vezes está certo, mas pelos motivos errados.</p>
+<p><span class="kv"><b>Utilidade:</b></span> contém crises e inibe sabotagens.</p>
+<p><span class="kv"><b>Demanda:</b></span> se oferece para "interrogar do jeito dele" quem você marcar como suspeito. Informação de graça. Mas se o alvo for humano, ele quebra um inocente e metade do salão para de falar com você.</p>
+<p><span class="kv"><b>Se for cópia:</b></span> usa a autoridade para espalhar medo e empurrar expulsões de humanos.</p>
+<p><span class="kv"><b>Relações:</b></span> escoltou o grupo escolar da Lia; vive em atrito com a Cláudia.</p></div>
+<div class="ficha"><h4>Lia Andrade, 17 anos, estudante</h4>
+<p><span class="kv"><b>Arquétipo:</b></span> a traumatizada. Parece culpada mesmo quando é vítima.</p>
+<p><span class="kv"><b>Utilidade:</b></span> observadora. Reconhece gente na fila e dá testemunhos que ninguém mais tem.</p>
+<p><span class="kv"><b>Demanda:</b></span> só testemunha se você prometer não usar o Estímulo Súbito naquela noite. Cumprir custa sua melhor ferramenta. Quebrar a promessa faz ela se calar para sempre.</p>
+<p><span class="kv"><b>Se for cópia:</b></span> usa a fragilidade como camuflagem. Se contradiz de propósito, para parecer incapaz de manipular alguém.</p>
+<p><span class="kv"><b>Relações:</b></span> tem medo do Rafael; se apega à Cláudia.</p></div>
+<div class="ficha"><h4>Eduardo Lima, 45 anos, professor</h4>
+<p><span class="kv"><b>Arquétipo:</b></span> o pai. A alavanca emocional do jogo inteiro.</p>
+<p><span class="kv"><b>Utilidade:</b></span> é o único que valida a Bia com certeza, e é bom em acalmar conflito.</p>
+<p><span class="kv"><b>Demanda:</b></span> te oferece tudo o que tem para você abrir a porta para <i>qualquer</i> menina de casaco amarelo. Da noite 3 em diante, chega uma. Não é a Bia. Ele jura que é.</p>
+<p><span class="kv"><b>Se for cópia:</b></span> a mochila rosa está seca. E quando tem barulho na rua, ele não se vira. Um pai se viraria.</p>
+<p><span class="kv"><b>Relações:</b></span> pai da Bia (o detalhe íntimo dos dois: o coelho de pelúcia, Nino).</p></div>
+<div class="ficha"><h4>Bia Lima, 12 anos, criança</h4>
+<p><span class="kv"><b>Arquétipo:</b></span> a inocência que ninguém consegue julgar com frieza.</p>
+<p><span class="kv"><b>Utilidade:</b></span> levanta o ânimo do salão e repara em detalhes que os adultos deixam passar.</p>
+<p><span class="kv"><b>O dilema dela:</b></span> negar uma criança é a decisão mais cara do jogo em confiança. E aceitar uma cópia criança é a mais letal.</p>
+<p><span class="kv"><b>Se for cópia:</b></span> fica perfeitamente parada. E não olha para o coelho de pelúcia nem uma vez.</p>
+<p><span class="kv"><b>Relações:</b></span> filha do Eduardo.</p></div>
+<div class="ficha"><h4>Seu Osvaldo, 67 anos, radioamador</h4>
+<p><span class="kv"><b>Arquétipo:</b></span> os ouvidos do bunker. E o canal por onde a verdade chega.</p>
+<p><span class="kv"><b>Utilidade:</b></span> intercepta transmissões (avisos sobre a fila) e decodifica os fragmentos que explicam o apagão.</p>
+<p><span class="kv"><b>Demanda e arco:</b></span> cada noite no rádio ele dorme menos, e os relatos vão ficando menos confiáveis. Ou será que estão ficando <i>mais</i> precisos? Você decide quando mandar o velho descansar, abrindo mão da informação.</p>
+<p><span class="kv"><b>Se for cópia:</b></span> "decodifica" transmissões que convenientemente empurram suas decisões para onde elas querem.</p>
+<p><span class="kv"><b>Relações:</b></span> trata a Bia como neta.</p></div>
+<div class="ficha"><h4>Tomás Ferreira, 51 anos, engenheiro eletricista</h4>
+<p><span class="kv"><b>Arquétipo:</b></span> o pragmático que mantém a luz acesa.</p>
+<p><span class="kv"><b>Utilidade:</b></span> mais 15 de bateria máxima e conserto de sabotagens.</p>
+<p><span class="kv"><b>Demanda:</b></span> quer racionar energia. Exige que você limite o uso de ferramentas a um teto por noite ("ou o gerador não chega na sexta noite"). Aceitar amarra suas mãos. Recusar faz ele trabalhar de má vontade, e os consertos caem pela metade.</p>
+<p><span class="kv"><b>Se for cópia:</b></span> a sabotagem vem justamente de quem conserta. A bateria some e ele "não achou o defeito".</p>
+<p><span class="kv"><b>Relações:</b></span> respeita a Cláudia; implica com o Rafael.</p></div>
+<h3>Os estranhos (gerados proceduralmente)</h3>
+<ul>
+<li>Visitantes criados na hora: nome, retrato pixelado, profissão e uma história montada sobre os fatos do mundo daquela run.</li>
+<li>São o volume da fila e o alimento do motor de contradições. Nunca se repetem entre uma run e outra.</li>
+<li>Também são a materialização da escassez: o bunker tem <b>vagas limitadas</b>. Cada estranho aceito é uma vaga que a Bia não vai ter na noite 4.</li>
+<li>Alguns carregam ganchos: o remédio que a Cláudia estava pedindo, um documento com um pedaço da verdade, uma acusação contra alguém que já está lá dentro.</li>
+</ul>
+<h3>Relações e detalhes íntimos (para os testemunhos)</h3>
+<table>
+<tr><th>Par</th><th>O detalhe que é difícil de falsificar</th></tr>
+<tr><td>Eduardo e Bia</td><td>O nome do coelho de pelúcia (Nino)</td></tr>
+<tr><td>Rafael e Lia</td><td>O grupo de estudantes escoltado até o ginásio</td></tr>
+<tr><td>Cláudia e Rafael</td><td>A evacuação do hospital Santa Marta</td></tr>
+<tr><td>Osvaldo e Bia</td><td>A música que ele deixava tocar no rádio para ela</td></tr>
+<tr><td>Tomás e Cláudia</td><td>O gerador do hospital que ele consertou durante o apagão</td></tr>
+</table>` },
+
+{ t: 'Campanha: as 6 Noites', c: `
+<table>
+<tr><th>Noite</th><th>Foco</th><th>Visitantes</th><th>O que muda</th></tr>
+<tr><td>1</td><td>Tutorial orgânico: furos contra o boletim</td><td>2</td><td>Tempo folgado, cópias básicas. A tensão vem da ignorância, não da dificuldade</td></tr>
+<tr><td>2</td><td>Furos de geografia e tempo; primeira demanda de um personagem fixo</td><td>3</td><td>O Caderno começa a encher. A loja dá uma falsa sensação de controle</td></tr>
+<tr><td>3</td><td>Furos contra testemunhos; <b>primeira interrupção da câmera interna</b></td><td>3</td><td>A porta passa a dividir sua atenção com o salão</td></tr>
+<tr><td>4</td><td>Cópias adaptadas; furos internos e por excesso</td><td>4</td><td>A fila é maior que o tempo. Alguém vai ficar de fora</td></tr>
+<tr><td>5</td><td>A investigação interna domina; a expulsão vira o dilema central</td><td>3</td><td>"Em quem eu ainda posso confiar?"</td></tr>
+<tr><td>6</td><td>Poucos visitantes; o salão decide tudo; os fragmentos da verdade convergem</td><td>2</td><td>O final tem duas camadas: sobreviveu? Entendeu?</td></tr>
+</table>
+<h3>Eventos de noite (um por noite, sorteado)</h3>
+<ul>
+<li><b>Chuva constante</b> (o padrão): quem chega seco não caminhou até aqui.</li>
+<li><b>Tempestade elétrica:</b> pulso e voz oscilam, os sensores ficam ruidosos.</li>
+<li><b>Onda de frio:</b> humanos chegam com o corpo frio, o térmico deixa de ser confiável.</li>
+<li><b>Interferência:</b> o analisador de voz falha e as transmissões cortam.</li>
+<li><b>Blecaute parcial:</b> a noite começa com 15 a menos de bateria máxima.</li>
+<li><b>Fila anormal:</b> chegam 2 visitantes a mais do que o previsto. Pressão máxima de tempo.</li>
+</ul>` },
+
+{ t: 'Economia e Loja', c: `
+<h3>De onde vem o dinheiro</h3>
+<ul>
+<li>Cota base da noite: <b>$25</b>, mais <b>$30 por morador vivo</b>.</li>
+<li><b>Se qualquer morador morrer no seu turno, você perde a cota inteira.</b> E ainda vê os corpos pela câmera interna. O fracasso, aqui, é visual.</li>
+<li>Tem bônus por demandas cumpridas e por fragmentos da verdade encontrados.</li>
+</ul>
+<h3>A loja (tudo disponível desde a noite 1)</h3>
+<p>A progressão é de domínio, não de desbloqueio: o jogador compra o que faz sentido para o estilo dele e aprende a usar.</p>
+<table>
+<tr><th>Item</th><th>Preço</th><th>Observação</th></tr>
+<tr><td>Pulseira de Pulsação</td><td>$70</td><td>Evidência fraca</td></tr>
+<tr><td>Scanner Térmico</td><td>$70</td><td>Evidência fraca</td></tr>
+<tr><td>Analisador de Voz</td><td>$90</td><td>Usar demais ensina as cópias</td></tr>
+<tr><td>Código de Verificação</td><td>$40</td><td>Prova acesso, não humanidade</td></tr>
+<tr><td>Estímulo Súbito</td><td>$110</td><td>Uma vez por noite, e com custo social</td></tr>
+<tr><td>Silêncio Forçado</td><td>$50</td><td>Simples e barato</td></tr>
+<tr><td>Câmera de Fila</td><td>$60</td><td>Observação sem interação</td></tr>
+<tr><td>Interfone Interno (testemunhos)</td><td>$80</td><td>A ferramenta mais forte do jogo, e a mais sabotável</td></tr>
+<tr><td>Gravador do Caderno (upgrade)</td><td>$60</td><td>Marca os fatos com horário automaticamente</td></tr>
+<tr><td>Bateria auxiliar (upgrade)</td><td>$120</td><td>Mais 20 de bateria máxima, permanente</td></tr>
+</table>
+<div class="callout"><b>Balanceamento para validar no protótipo:</b> jogando bem, a renda da campanha deve dar para comprar uns 70% da loja. Nunca 100%. Escolher o que comprar é montar uma build.</div>` },
+
+{ t: 'Vitória, Derrota e Finais', c: `
+<h3>As condições</h3>
+<ul>
+<li><b>Vitória:</b> atravessar as 6 noites com o bunker de pé.</li>
+<li><b>Derrota 1:</b> todos os moradores mortos (depois que o salão já foi habitado).</li>
+<li><b>Derrota 2:</b> bateria zerada. As travas soltam e a fila inteira entra <i>no mesmo passo, no mesmo ritmo, como se sempre tivesse sido uma coisa só</i>.</li>
+</ul>
+<h3>Os finais (duas camadas que não dependem uma da outra)</h3>
+<table>
+<tr><th>Camada</th><th>Estados possíveis</th></tr>
+<tr><td><b>Sobrevivência</b></td><td>AMANHECER (o salão está vivo e sem nenhuma cópia) · ELES ESTÃO DENTRO (você sobreviveu, mas tem cópia no salão) · O COFRE VAZIO (você sobreviveu sozinho)</td></tr>
+<tr><td><b>Verdade</b></td><td>Depende dos fragmentos coletados, de 0 a 5: vai de "você nunca soube o que aconteceu" até a revelação completa da causa do apagão</td></tr>
+</table>
+<p>A combinação das duas camadas gera mais de 9 epílogos. E no fim de toda run, o jogo abre o arquivo: quem era cópia, quem era humano, o que cada decisão sua causou. É esse momento que faz as pessoas discutirem o jogo e começarem outra run na hora.</p>` },
+
+{ t: 'Direção de Arte e Áudio', c: `
+<h3>Arte</h3>
+<ul>
+<li><b>Pixel art</b> com pós-processo de CRT (scanlines, vinheta, uma aberração cromática leve). A referência visual é a arte-conceito do console do operador: monitores verdes, alavancas, microfone de mesa.</li>
+<li>Paleta: verdes fósforo (#8dffa8) e âmbares (#ffcf7d) sobre marrons escuros. O vermelho fica reservado só para o perigo. Se algo está vermelho na tela, algo está errado.</li>
+<li>Retratos dos visitantes: pixelados, mal iluminados, parcialmente cobertos pela estática. O rosto nunca é 100% legível de propósito. A imaginação do jogador completa, e ela é mais assustadora que qualquer sprite.</li>
+<li>As câmeras têm ruído, ghosting e frames perdidos. A interrupção do salão deve ficar no limite do subliminar.</li>
+</ul>
+<h3>Áudio (metade do medo mora aqui)</h3>
+<ul>
+<li>Sem música contínua. A trilha é o ambiente: o gerador, a chuva, a estática, o ventilador do próprio console.</li>
+<li><b>O que você ouve e não vê:</b> batidas que param no meio, a fila que fica em silêncio toda ao mesmo tempo, passos num corredor interno onde não deveria ter ninguém.</li>
+<li>Vozes com compressão de rádio e cortes de sinal. As cópias têm a mixagem 2% mais limpa que a dos humanos. Ninguém percebe conscientemente. Mas percebe.</li>
+<li>Jumpscare de áudio é proibido. Inquietação é obrigatória.</li>
+</ul>
+<h3>As 4 fontes do medo (tudo design, nada de susto)</h3>
+<ol>
+<li>O que você ouve e não vê.</li>
+<li>O que a câmera quase mostrou: 3 segundos, e a dúvida se você viu mesmo.</li>
+<li>A cópia desmascarada: a resposta errada demais, dita com calma total.</li>
+<li>As suas decisões antigas: a mochila rosa na vala da noite 3 é de quem você negou na noite 2.</li>
+</ol>` },
+
+{ t: 'UI e Telas', c: `
+<h3>As telas</h3>
+<ol>
+<li><b>Título:</b> a frase de impacto, iniciar ou continuar campanha, e o modo infinito (liberado depois da campanha).</li>
+<li><b>Boletim da noite:</b> a rádio oficial, os fatos públicos e o código rotativo.</li>
+<li><b>Console do operador</b> (a tela principal, com o layout que já validamos no protótipo):
+<ul>
+<li>Topo: noite, tempo restante, fila, créditos e bateria.</li>
+<li>Esquerda: sensores (ECG, térmico, voz) e condições externas.</li>
+<li>Centro: monitor de diálogo em CRT, perguntas, ferramentas e os botões OPEN, DENY e HOLD.</li>
+<li>Direita: câmera da entrada em pixel art, câmera interna e a fila com os estados de cada pessoa.</li>
+<li><b>Novidade do redesign:</b> o CADERNO, um painel retrátil por cima da coluna esquerda, com as abas Mundo, Visitantes e Salão, busca e o botão CONFRONTAR.</li>
+</ul></li>
+<li><b>Relatório da noite:</b> eventos, pagamento, mortes.</li>
+<li><b>Gerenciamento:</b> loja e salão (conversar, atender demandas, expulsar).</li>
+<li><b>Final:</b> o epílogo em duas camadas e a revelação completa da run.</li>
+</ol>
+<div class="callout"><b>Princípio de UI:</b> o jogo inteiro acontece dentro da sala do operador. Nenhuma tela de menu quebra a imersão. Até a loja é um catálogo de requisição aberto no próprio terminal.</div>` },
+
+{ t: 'Mercado e Monetização', c: `
+<h3>Posicionamento</h3>
+<p>"<b>Papers, Please encontra FNAF, e o impostor pode já estar dentro.</b>" O nicho está provado (That's Not My Neighbor passou de 1 milhão de cópias, Buckshot Roulette de 2 milhões) e o nosso diferencial é claro: dedução procedural justa somada à paranoia interna.</p>
+<h3>Estratégia</h3>
+<ul>
+<li><b>Demo grátis pensada para viralizar:</b> a Noite 1 completa, terminando no gancho da primeira interrupção da câmera interna. Lançar em Steam Next Fest.</li>
+<li><b>Preço:</b> entre US$ 7,99 e 9,99. O jogo completo traz a campanha de 6 noites e o modo infinito.</li>
+<li><b>Modo infinito com seed diária</b> e ranking de noites sobrevividas. É o que faz streamer voltar toda semana.</li>
+<li><b>Streamers primeiro:</b> distribuir keys para criadores de terror e dedução. Os dois momentos de clipe são a máscara deslizando e a revelação do final da run.</li>
+<li>Tags de Steam: Deduction, Psychological Horror, Papers Please-like, Point and Click, Roguelite, Atmospheric.</li>
+<li>Localização mínima no lançamento: português e inglês. O jogo é pesado em texto, e sem inglês não há escala.</li>
+</ul>` },
+
+{ t: 'Roadmap', c: `
+<table>
+<tr><th>Fase</th><th>Entrega</th><th>Status</th></tr>
+<tr><td>0</td><td>Protótipo HTML v1: loop básico, interface, elenco, ferramentas</td><td>✔ Feito</td></tr>
+<tr><td>1</td><td>Protótipo v2: motor de contradições, Caderno e PRESSIONAR (validar se o núcleo é divertido)</td><td>Próximo passo</td></tr>
+<tr><td>2</td><td>Protótipo v2.5: tempo por ações, fila com estados, interrupções internas e áudio provisório</td><td>Na fila</td></tr>
+<tr><td>3</td><td>Port para Unity: arquitetura de dados (fatos e furos como ScriptableObjects), telas e save</td><td>Na fila</td></tr>
+<tr><td>4</td><td>Conteúdo: os 7 arcos completos, gerador de estranhos, 6 noites, eventos e finais</td><td>Na fila</td></tr>
+<tr><td>5</td><td>Polimento: áudio final, arte final, localização em inglês e balanceamento</td><td>Na fila</td></tr>
+<tr><td>6</td><td>Demo (Noite 1), Steam Next Fest e lançamento</td><td>Na fila</td></tr>
+</table>
+<div class="callout green"><b>Critério para avançar da Fase 1:</b> se pegar uma cópia pela contradição não for divertido num protótipo de texto, não vai ser divertido na Unity. Validar antes de portar.</div>` },
+
+{ t: 'Riscos de Design', c: `
+<table>
+<tr><th>Risco</th><th>Como a gente mitiga</th></tr>
+<tr><td>A dedução vazar para wikis e guias</td><td>Os furos são combinações de mundo, personagem e noite, gerados por seed. Decorar não resolve</td></tr>
+<tr><td>O jogador se perder no volume de fatos nas noites finais</td><td>Busca no Caderno, marcação de fatos, o upgrade do Gravador e um contador discreto por visitante</td></tr>
+<tr><td>Muito texto sob pressão de tempo cansar</td><td>Tempo por ações em vez de relógio real, falas curtas (2 a 3 frases) e o áudio carregando parte da informação</td></tr>
+<tr><td>O PRESSIONAR virar spam, ou o oposto: dar medo de usar</td><td>Uma tentativa por visitante; o falso positivo entrega um fato novo (não é só punição); a noite 1 ensina com um uso guiado</td></tr>
+<tr><td>Os estranhos procedurais soarem genéricos</td><td>Um banco grande de ganchos escritos à mão, montados proceduralmente, com nomes e retratos gerados</td></tr>
+<tr><td>Os 7 arcos estourarem o escopo de escrita</td><td>Cada arco é uma demanda, dois eventos e a variante cópia. Nada de cutscene: tudo em diálogo de console</td></tr>
+<tr><td>O medo sem jumpscare não segurar streamer</td><td>Os clipes vêm da máscara deslizando e da revelação final. Testar cedo com playtesters de verdade</td></tr>
+</table>` }
+
+]};
+
+// ============================================================
+// APP
+// ============================================================
+const LS_KEY = 'bp40-gdd-v2';
+let DOC = null;
+
+function uid() { return 'S' + Math.random().toString(36).slice(2, 9); }
+
+function load() {
+  try {
+    const raw = localStorage.getItem(LS_KEY);
+    if (raw) { DOC = JSON.parse(raw); return; }
+  } catch (e) {}
+  DOC = JSON.parse(JSON.stringify(DEFAULT_DOC));
+  DOC.sections.forEach(s => s.id = uid());
+}
+
+let saveTimer = null;
+function scheduleSave() {
+  $('saveState').textContent = 'editando...';
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(save, 600);
+}
+function save() {
+  // recolhe conteúdo do DOM para o modelo
+  document.querySelectorAll('.section').forEach(el => {
+    const s = DOC.sections.find(x => x.id === el.dataset.id);
+    if (!s) return;
+    s.t = el.querySelector('.sec-title').textContent.trim() || 'Sem título';
+    s.c = el.querySelector('.sec-body').innerHTML;
+  });
+  try {
+    localStorage.setItem(LS_KEY, JSON.stringify(DOC));
+    $('saveState').textContent = '✔ salvo ' + new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+  } catch (e) {
+    $('saveState').textContent = '⚠ erro ao salvar';
+  }
+}
+
+function $(id) { return document.getElementById(id); }
+
+// ---------------- render ----------------
+function render() {
+  const main = $('main');
+  main.innerHTML = '';
+  DOC.sections.forEach((s, i) => main.appendChild(sectionEl(s, i)));
+  renderNav();
+}
+
+function sectionEl(s, i) {
+  const el = document.createElement('div');
+  el.className = 'section';
+  el.dataset.id = s.id;
+  el.id = 'sec-' + s.id;
+
+  const head = document.createElement('div');
+  head.className = 'sec-head';
+  const num = document.createElement('span');
+  num.className = 'num';
+  num.textContent = String(i + 1).padStart(2, '0');
+  const title = document.createElement('div');
+  title.className = 'sec-title';
+  title.contentEditable = 'true';
+  title.spellcheck = false;
+  title.textContent = s.t;
+  title.addEventListener('input', () => { scheduleSave(); schedulePush(s.id); });
+  title.addEventListener('blur', () => { save(); renderNav(); flushPush(s.id); });
+  title.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); title.blur(); } });
+
+  const ctrl = document.createElement('div');
+  ctrl.className = 'sec-ctrl';
+  ctrl.appendChild(cbtn('↑', 'mover para cima', () => moveSection(s.id, -1)));
+  ctrl.appendChild(cbtn('↓', 'mover para baixo', () => moveSection(s.id, 1)));
+  const del = cbtn('✕', 'excluir seção', () => {
+    if (confirm('Excluir a seção "' + s.t + '"?')) {
+      DOC.sections = DOC.sections.filter(x => x.id !== s.id);
+      render(); save(); collabRemove(s.id);
+    }
+  });
+  del.classList.add('del');
+  ctrl.appendChild(del);
+
+  head.appendChild(num); head.appendChild(title); head.appendChild(ctrl);
+
+  const body = document.createElement('div');
+  body.className = 'sec-body';
+  body.contentEditable = 'true';
+  body.spellcheck = false;
+  body.innerHTML = s.c;
+  body.addEventListener('input', () => { scheduleSave(); schedulePush(s.id); });
+  body.addEventListener('blur', () => { save(); flushPush(s.id); });
+
+  el.appendChild(head); el.appendChild(body);
+  return el;
+}
+
+function cbtn(txt, tip, fn) {
+  const b = document.createElement('button');
+  b.className = 'cbtn'; b.textContent = txt; b.title = tip;
+  b.onclick = fn;
+  return b;
+}
+
+function moveSection(id, dir) {
+  save();
+  const i = DOC.sections.findIndex(x => x.id === id);
+  const j = i + dir;
+  if (j < 0 || j >= DOC.sections.length) return;
+  [DOC.sections[i], DOC.sections[j]] = [DOC.sections[j], DOC.sections[i]];
+  render(); save(); collabOrd();
+  document.getElementById('sec-' + id).scrollIntoView({ block: 'center' });
+}
+
+function addSection() {
+  save();
+  const t = prompt('Título da nova seção:', 'Nova seção');
+  if (t === null) return;
+  const s = { id: uid(), t: t || 'Nova seção', c: '<p>Escreva aqui...</p>' };
+  DOC.sections.push(s);
+  render(); save(); collabAdd(s);
+  document.getElementById('sec-' + s.id).scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+// ---------------- navegação ----------------
+function renderNav() {
+  const q = ($('navSearch').value || '').toLowerCase();
+  const list = $('navList');
+  list.innerHTML = '';
+  DOC.sections.forEach((s, i) => {
+    if (q && !s.t.toLowerCase().includes(q)) return;
+    const it = document.createElement('div');
+    it.className = 'navItem';
+    it.dataset.target = 'sec-' + s.id;
+    const num = document.createElement('span');
+    num.className = 'num';
+    num.textContent = String(i + 1).padStart(2, '0');
+    it.appendChild(num);
+    it.appendChild(document.createTextNode(s.t));
+    it.onclick = () => document.getElementById('sec-' + s.id).scrollIntoView({ behavior: 'smooth', block: 'start' });
+    list.appendChild(it);
+  });
+}
+
+// destaque da seção visível
+const obs = new IntersectionObserver(entries => {
+  entries.forEach(en => {
+    if (en.isIntersecting) {
+      document.querySelectorAll('.navItem').forEach(n =>
+        n.classList.toggle('active', n.dataset.target === en.target.id));
+    }
+  });
+}, { rootMargin: '-30% 0px -60% 0px' });
+
+function observeAll() {
+  document.querySelectorAll('.section').forEach(s => obs.observe(s));
+}
+
+// ---------------- formatação ----------------
+function fmt(ev, cmd) {
+  ev.preventDefault();
+  document.execCommand(cmd, false, null);
+  scheduleSave();
+}
+function fmtBlock(ev, tag) {
+  ev.preventDefault();
+  document.execCommand('formatBlock', false, tag);
+  scheduleSave();
+}
+function insertHTMLAtCursor(ev, html) {
+  ev.preventDefault();
+  document.execCommand('insertHTML', false, html);
+  scheduleSave();
+}
+
+// ---------------- import / export ----------------
+function exportJSON() {
+  save();
+  const blob = new Blob([JSON.stringify(DOC, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'GDD-Bunker-Protocolo-40_' + new Date().toISOString().slice(0, 10) + '.json';
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+function importJSON(input) {
+  const f = input.files[0];
+  if (!f) return;
+  const r = new FileReader();
+  r.onload = () => {
+    try {
+      const d = JSON.parse(r.result);
+      if (!d.sections || !Array.isArray(d.sections)) throw new Error('formato inválido');
+      d.sections.forEach(s => { if (!s.id) s.id = uid(); });
+      DOC = d;
+      render(); observeAll(); save(); collabReplaceAll();
+    } catch (e) {
+      alert('Arquivo inválido: ' + e.message);
+    }
+  };
+  r.readAsText(f);
+  input.value = '';
+}
+function restoreDefault() {
+  if (!confirm('Restaurar o GDD padrão? Suas edições atuais serão PERDIDAS (exporte um backup antes, se quiser).')) return;
+  DOC = JSON.parse(JSON.stringify(DEFAULT_DOC));
+  DOC.sections.forEach(s => s.id = uid());
+  render(); observeAll(); save(); collabReplaceAll();
+}
+
+// ============================================================
+// COLABORAÇÃO EM TEMPO REAL
+// ============================================================
+const ROOM = 'gdd-principal';
+const collab = { on: false, secsRef: null, presRef: null, meRef: null };
+const PALETTE = ['#8dffa8', '#ffcf7d', '#8fd8ff', '#ff9ecb', '#c9a3ff', '#ffb36a', '#7dffd4', '#f0ff7d'];
+let myId = localStorage.getItem('bp40-uid');
+if (!myId) { myId = 'u' + Math.random().toString(36).slice(2, 10); localStorage.setItem('bp40-uid', myId); }
+let myName = localStorage.getItem('bp40-name') || null;
+const myColor = PALETTE[Math.abs(myId.split('').reduce((a, c) => a + c.charCodeAt(0), 0)) % PALETTE.length];
+
+let focusedSec = null;               // seção que EU estou editando agora
+const pendingRemote = {};            // updates remotos adiados enquanto edito
+let pendingRender = false;
+const pushTimers = {};
+
+document.addEventListener('focusin', e => {
+  const sec = e.target.closest ? e.target.closest('.section') : null;
+  const id = sec ? sec.dataset.id : null;
+  if (id !== focusedSec) { focusedSec = id; presencePush(); }
+});
+document.addEventListener('focusout', () => {
+  setTimeout(() => {
+    const ae = document.activeElement;
+    if (!ae || !ae.closest || !ae.closest('.section')) {
+      focusedSec = null;
+      applyPendingRemote();
+      presencePush();
+    }
+  }, 60);
+});
+
+function setCollabState(txt, on) {
+  const el = $('collabState');
+  el.textContent = txt;
+  el.classList.toggle('on', !!on);
+}
+
+function initCollab() {
+  if (!FIREBASE_CONFIG) { setCollabState('· modo local (sem tempo real)'); return; }
+  if (!window.firebase) { setCollabState('· sem conexão com o serviço de sync'); return; }
+  try {
+    firebase.initializeApp(FIREBASE_CONFIG);
+    const db = firebase.database();
+    collab.secsRef = db.ref('rooms/' + ROOM + '/sections');
+    collab.presRef = db.ref('rooms/' + ROOM + '/presence');
+
+    if (!myName) {
+      myName = (prompt('Como as outras pessoas devem te ver no documento?', 'Anônimo') || 'Anônimo').slice(0, 20);
+      localStorage.setItem('bp40-name', myName);
+    }
+
+    db.ref('.info/connected').on('value', s => {
+      if (s.val()) {
+        setCollabState('● tempo real ativo', true);
+        collab.meRef = collab.presRef.child(myId);
+        collab.meRef.onDisconnect().remove();
+        presencePush();
+      } else setCollabState('· reconectando...');
+    });
+
+    collab.secsRef.once('value').then(snap => {
+      const val = snap.val();
+      if (!val) {
+        // primeiro a chegar: publica o documento local
+        const seed = {};
+        DOC.sections.forEach((s, i) => seed[s.id] = { t: s.t, c: s.c, ord: i * 10 });
+        collab.secsRef.set(seed);
+        DOC.sections.forEach((s, i) => s.ord = i * 10);
+      } else {
+        // documento compartilhado já existe: ele é a fonte da verdade
+        DOC.sections = Object.entries(val)
+          .map(([id, v]) => ({ id, t: v.t, c: v.c, ord: v.ord || 0 }))
+          .sort((a, b) => a.ord - b.ord);
+        render(); observeAll(); save();
+      }
+      collab.on = true;
+      attachRemoteListeners();
+    });
+
+    collab.presRef.on('value', snap => renderPeers(snap.val() || {}));
+  } catch (e) {
+    setCollabState('· erro no sync: ' + e.message);
+  }
+}
+
+function attachRemoteListeners() {
+  collab.secsRef.on('child_added', snap => {
+    if (DOC.sections.some(s => s.id === snap.key)) return;
+    const v = snap.val();
+    DOC.sections.push({ id: snap.key, t: v.t, c: v.c, ord: v.ord || 0 });
+    DOC.sections.sort((a, b) => a.ord - b.ord);
+    deferredRender();
+  });
+  collab.secsRef.on('child_changed', snap => {
+    const s = DOC.sections.find(x => x.id === snap.key);
+    if (!s) return;
+    const v = snap.val();
+    const ordChanged = s.ord !== (v.ord || 0);
+    s.t = v.t; s.c = v.c; s.ord = v.ord || 0;
+    if (ordChanged) {
+      DOC.sections.sort((a, b) => a.ord - b.ord);
+      deferredRender();
+    } else patchDom(s);
+  });
+  collab.secsRef.on('child_removed', snap => {
+    DOC.sections = DOC.sections.filter(s => s.id !== snap.key);
+    delete pendingRemote[snap.key];
+    deferredRender();
+  });
+}
+
+// aplica update remoto na tela sem destruir o cursor de quem edita
+function patchDom(s) {
+  if (focusedSec === s.id) { pendingRemote[s.id] = true; return; }
+  const el = document.querySelector('.section[data-id="' + s.id + '"]');
+  if (!el) return;
+  const title = el.querySelector('.sec-title');
+  const body = el.querySelector('.sec-body');
+  if (title.textContent !== s.t) { title.textContent = s.t; renderNav(); }
+  if (body.innerHTML !== s.c) body.innerHTML = s.c;
+  scheduleLocalCache();
+}
+
+function applyPendingRemote() {
+  Object.keys(pendingRemote).forEach(id => {
+    delete pendingRemote[id];
+    const s = DOC.sections.find(x => x.id === id);
+    if (s) patchDom(s);
+  });
+  if (pendingRender) { pendingRender = false; render(); observeAll(); renderPeers(lastPeers); }
+}
+
+function deferredRender() {
+  if (focusedSec) { pendingRender = true; return; }
+  render(); observeAll(); renderPeers(lastPeers);
+  scheduleLocalCache();
+}
+
+let cacheTimer = null;
+function scheduleLocalCache() { clearTimeout(cacheTimer); cacheTimer = setTimeout(save, 800); }
+
+// ---- envio das minhas edições ----
+function schedulePush(id) {
+  if (!collab.on) return;
+  clearTimeout(pushTimers[id]);
+  pushTimers[id] = setTimeout(() => doPush(id), 350);
+}
+function flushPush(id) {
+  if (!collab.on) return;
+  clearTimeout(pushTimers[id]);
+  doPush(id);
+}
+function doPush(id) {
+  const el = document.querySelector('.section[data-id="' + id + '"]');
+  const s = DOC.sections.find(x => x.id === id);
+  if (!el || !s) return;
+  collab.secsRef.child(id).update({
+    t: el.querySelector('.sec-title').textContent.trim() || 'Sem título',
+    c: el.querySelector('.sec-body').innerHTML,
+    ord: s.ord != null ? s.ord : DOC.sections.indexOf(s) * 10
+  });
+}
+function collabAdd(s) {
+  if (!collab.on) return;
+  s.ord = DOC.sections.length * 10;
+  collab.secsRef.child(s.id).set({ t: s.t, c: s.c, ord: s.ord });
+}
+function collabRemove(id) {
+  if (!collab.on) return;
+  collab.secsRef.child(id).remove();
+}
+function collabOrd() {
+  if (!collab.on) return;
+  DOC.sections.forEach((s, i) => {
+    s.ord = i * 10;
+    collab.secsRef.child(s.id).update({ ord: s.ord });
+  });
+}
+function collabReplaceAll() {
+  if (!collab.on) return;
+  const all = {};
+  DOC.sections.forEach((s, i) => { s.ord = i * 10; all[s.id] = { t: s.t, c: s.c, ord: s.ord }; });
+  collab.secsRef.set(all);
+}
+
+// ---- presença ----
+function presencePush() {
+  if (!collab.meRef) return;
+  collab.meRef.set({ name: myName, color: myColor, editing: focusedSec || null, ts: Date.now() });
+}
+let lastPeers = {};
+function renderPeers(peers) {
+  lastPeers = peers;
+  const box = $('peers');
+  box.innerHTML = '';
+  Object.entries(peers).forEach(([id, p]) => {
+    const d = document.createElement('div');
+    d.className = 'peer';
+    d.style.background = p.color || '#8dffa8';
+    d.textContent = (p.name || '?')[0].toUpperCase();
+    d.title = p.name + (id === myId ? ' (você)' : '');
+    box.appendChild(d);
+  });
+  // etiquetas "fulano está editando" nas seções
+  document.querySelectorAll('.section').forEach(el => {
+    el.classList.remove('remote-editing');
+    const old = el.querySelector('.editors');
+    if (old) old.remove();
+    const editors = Object.entries(peers).filter(([id, p]) => id !== myId && p.editing === el.dataset.id);
+    if (editors.length) {
+      el.classList.add('remote-editing');
+      const wrap = document.createElement('div');
+      wrap.className = 'editors';
+      editors.forEach(([id, p]) => {
+        const tag = document.createElement('span');
+        tag.className = 'editorTag';
+        tag.style.background = p.color || '#ffcf7d';
+        tag.textContent = '✎ ' + (p.name || '?');
+        wrap.appendChild(tag);
+      });
+      const ctrl = el.querySelector('.sec-ctrl');
+      ctrl.parentNode.insertBefore(wrap, ctrl);
+    }
+  });
+}
+
+// ---------------- layout dinâmico ----------------
+function adjustLayout() {
+  const top = $('topbar').offsetHeight;
+  const fmt = $('fmtbar');
+  fmt.style.top = top + 'px';
+  $('sidebar').style.top = top + 'px';
+  $('main').style.paddingTop = (top + fmt.offsetHeight + 24) + 'px';
+}
+window.addEventListener('resize', adjustLayout);
+new ResizeObserver(adjustLayout).observe(document.getElementById('fmtbar'));
+new ResizeObserver(adjustLayout).observe(document.getElementById('topbar'));
+
+// ---------------- init ----------------
+load();
+render();
+observeAll();
+adjustLayout();
+initCollab();
+$('saveState').textContent = localStorage.getItem(LS_KEY) ? '✔ carregado do navegador' : 'documento padrão';
+window.addEventListener('beforeunload', save);
+</script>
+</body>
+</html>
