@@ -1,0 +1,109 @@
+/* Painel de referências livre: imagens podem ser posicionadas como em um moodboard. */
+.reference-gallery {
+  position: relative;
+  display: block;
+  width: 100%;
+  min-height: 440px;
+  margin-top: 18px;
+  overflow: hidden;
+  border: 1px dashed rgba(139, 104, 55, 0.34);
+  border-radius: 8px;
+  background:
+    linear-gradient(rgba(125, 91, 47, 0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(125, 91, 47, 0.035) 1px, transparent 1px),
+    rgba(255, 250, 239, 0.18);
+  background-size: 24px 24px;
+}
+
+.reference-gallery:empty {
+  display: none;
+}
+
+.reference-gallery .media-block {
+  position: absolute;
+  left: 0;
+  top: 0;
+  z-index: var(--board-z, 1);
+  flex: none !important;
+  width: var(--image-width, 46%) !important;
+  max-width: 100%;
+  margin: 0 !important;
+  transform: translate3d(var(--board-x, 0px), var(--board-y, 0px), 0);
+  transition: box-shadow 0.16s ease, border-color 0.16s ease;
+  touch-action: none;
+  will-change: transform;
+}
+
+.reference-gallery .media-block:hover {
+  transform: translate3d(var(--board-x, 0px), var(--board-y, 0px), 0);
+}
+
+.reference-gallery .media-frame {
+  min-height: 0;
+  cursor: default;
+}
+
+.reference-gallery .media-frame.is-loading {
+  min-height: 150px;
+}
+
+.reference-gallery .media-frame img {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: none;
+  object-fit: contain;
+  -webkit-user-drag: none;
+  user-select: none;
+}
+
+.block-editor.is-editing .reference-gallery .media-frame {
+  cursor: grab;
+}
+
+.block-editor.is-editing .reference-gallery .media-frame:active,
+.reference-gallery .media-block.is-board-dragging .media-frame {
+  cursor: grabbing;
+}
+
+.reference-gallery .media-block.is-board-dragging {
+  border-color: #8f7042;
+  box-shadow: 0 0 0 2px rgba(185, 154, 97, 0.72), 0 18px 40px rgba(47, 31, 16, 0.28);
+  transition: none;
+}
+
+/* Remove o espaço escuro artificial em imagens fora do painel também. */
+.media-frame:not(.is-loading) {
+  min-height: 0;
+}
+
+.media-frame:not(.is-loading) img {
+  height: auto;
+}
+
+@media (max-width: 800px) {
+  .reference-gallery {
+    min-height: 360px;
+    background-size: 20px 20px;
+  }
+
+  .reference-gallery .media-block {
+    width: min(var(--image-width, 72%), 100%) !important;
+  }
+}
+
+@media print {
+  .reference-gallery {
+    min-height: 0 !important;
+    overflow: visible;
+    border: 0;
+    background: none;
+  }
+
+  .reference-gallery .media-block {
+    position: relative;
+    width: 100% !important;
+    margin: 0 0 18px !important;
+    transform: none !important;
+  }
+}
