@@ -1,0 +1,127 @@
+/* Ajuste de alinhamento da barra de edição do documento. */
+.document-tabs {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr) max-content;
+  align-items: center;
+  column-gap: 14px;
+  min-height: 64px;
+  padding: 0 20px;
+}
+
+.document-tabs > .tab {
+  min-width: 0;
+  height: 64px;
+  padding: 0 14px;
+}
+
+.document-tabs > .tab.active {
+  flex: none;
+  justify-content: center;
+  white-space: nowrap;
+}
+
+.document-tabs > .tab.muted {
+  overflow: hidden;
+  justify-content: flex-start;
+  padding-inline: 0;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.doc-tools {
+  flex: none;
+  align-self: center;
+  margin-left: 0;
+  white-space: nowrap;
+}
+
+.doc-tools button,
+.doc-tools .selection-tools,
+.doc-tools .more-tools {
+  flex-shrink: 0;
+}
+
+.doc-tools button.box-tool {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: max-content;
+  height: 38px;
+  padding: 0 14px;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.doc-tools button.box-tool .desktop-label,
+.doc-tools button.box-tool .mobile-label {
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.doc-tools button.box-tool .desktop-label {
+  display: inline-flex;
+}
+
+.selection-tools,
+.selection-tools button,
+.more-tools,
+.more-tools summary {
+  align-self: center;
+}
+
+.selection-tools button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@media (max-width: 1320px) {
+  .document-tabs {
+    grid-template-columns: max-content minmax(0, 1fr) max-content;
+    column-gap: 10px;
+    padding-inline: 14px;
+  }
+
+  .document-tabs > .tab.muted {
+    font-size: 13px;
+  }
+}
+
+@media (max-width: 1180px) {
+  .document-tabs {
+    grid-template-columns: max-content max-content;
+    justify-content: space-between;
+  }
+
+  .document-tabs > .tab.muted {
+    display: none;
+  }
+}
+
+@media (max-width: 800px) {
+  .document-tabs {
+    display: flex;
+    min-height: 58px;
+    padding: 0 10px;
+  }
+
+  .document-tabs > .tab {
+    height: 58px;
+  }
+
+  .doc-tools button.box-tool {
+    min-width: auto;
+    height: 34px;
+    padding: 0 10px;
+  }
+
+  .doc-tools button.box-tool .desktop-label {
+    display: none;
+  }
+
+  .doc-tools button.box-tool .mobile-label {
+    display: inline-flex;
+  }
+}
