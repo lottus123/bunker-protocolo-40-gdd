@@ -1,0 +1,12 @@
+{
+  "name": "Production Hub",
+  "short_name": "Prod Hub",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#f6f7f9",
+  "theme_color": "#5f63f2",
+  "description": "Tarefas, projetos, documentos e assets da equipe.",
+  "icons": [
+    {"src": "./icons/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable"}
+  ]
+}

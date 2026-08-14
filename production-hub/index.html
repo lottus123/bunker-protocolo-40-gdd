@@ -1,0 +1,365 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <meta name="theme-color" content="#5f63f2" />
+  <meta name="description" content="Production Hub — tarefas, projetos, documentos e assets da equipe." />
+  <link rel="manifest" href="./manifest.webmanifest" />
+  <link rel="icon" href="./icons/icon.svg" type="image/svg+xml" />
+  
+  <link rel="stylesheet" href="./styles.css" />
+  <title>Production Hub</title>
+</head>
+<body>
+<div id="toast" class="toast"></div>
+
+<section id="setupScreen" class="center-screen hidden">
+  <div class="auth-card">
+    <div class="logo-mark">PH</div>
+    <h1>Production Hub</h1>
+    <p>O Supabase ainda não foi configurado.</p>
+    <div class="setup-box">
+      Abra <code>public/supabase-config.js</code>, preencha a URL, a Publishable Key e a VAPID Public Key; depois marque <code>configured: true</code>.
+    </div>
+    <p class="fine">O arquivo README_SETUP.md tem o passo a passo.</p>
+  </div>
+</section>
+
+<section id="loginScreen" class="center-screen hidden">
+  <div class="auth-card">
+    <div class="logo-mark">PH</div>
+    <h1>Production Hub</h1>
+    <p>Tarefas, mudanças e materiais da equipe em um único lugar.</p>
+
+    <button id="googleLoginBtn" class="btn primary wide">Continuar com Google</button>
+
+    <div class="divider"><span>ou</span></div>
+
+    <form id="emailLoginForm">
+      <input id="loginEmail" class="auth-input" type="email" required placeholder="seu@email.com" />
+      <button class="btn wide" type="submit">Entrar por link no e-mail</button>
+    </form>
+
+    <p class="fine">O login por e-mail funciona mesmo se você ainda não configurar o Google OAuth.</p>
+  </div>
+</section>
+
+<div id="appShell" class="app hidden">
+  <header class="topbar">
+    <button id="brandHome" class="brand-button">Production Hub</button>
+
+    <nav class="nav">
+      <button class="active" data-view="home">Hoje</button>
+      <button data-view="projects">Projetos</button>
+      <button data-view="tasks">Tarefas</button>
+      <button data-view="docs">Documentos</button>
+      <button data-view="assets">Assets</button>
+    </nav>
+
+    <div class="header-actions">
+      <button id="notificationBtn" class="btn notification-button" title="Notificações">
+        <span class="notification-dot"></span>
+        Notificações
+      </button>
+      <button id="newTaskTop" class="btn primary producer-only">+ tarefa</button>
+      <button id="accountBtn" class="avatar-button" title="Conta">
+        <img id="accountAvatar" alt="" />
+        <span id="accountInitials">?</span>
+      </button>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <section id="home" class="view active">
+      <div class="hero">
+        <div>
+          <h1 id="greeting">O que importa agora.</h1>
+          <p>Suas tarefas, mudanças recentes e o projeto em andamento.</p>
+        </div>
+
+        <div class="resume-card">
+          <div class="eyebrow">Continuar trabalhando</div>
+          <strong id="resumeProjectName">Nenhum projeto</strong>
+          <div class="row">
+            <span id="resumeProjectMeta">—</span>
+            <button id="resumeBtn" class="btn primary small">Abrir</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="announcement" class="notice"></div>
+
+      <div class="home-grid">
+        <div class="panel">
+          <div class="panel-head">
+            <h2>Hoje</h2>
+            <span id="todayCount">0 tarefas</span>
+          </div>
+          <div id="todayTasks"></div>
+        </div>
+
+        <div class="home-side">
+          <div class="panel">
+            <div class="panel-head">
+              <h2>Desde sua última visita</h2>
+              <span id="lastVisitLabel">—</span>
+            </div>
+            <div id="activityList" class="activity"></div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-head">
+              <h2>Progresso do projeto</h2>
+              <span id="progressPercent">0%</span>
+            </div>
+            <div class="project-progress">
+              <strong id="progressProjectName">Nenhum projeto</strong>
+              <span id="progressProjectDesc" class="project-description"></span>
+              <div class="bar"><i id="progressBar"></i></div>
+
+              <div class="progress-stats">
+                <div><b id="progressDone">0</b><span>feitas</span></div>
+                <div><b id="progressDoing">0</b><span>fazendo</span></div>
+                <div><b id="progressReview">0</b><span>revisão</span></div>
+              </div>
+
+              <button id="continueBtn" class="btn primary wide">Continuar trabalhando</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="projects" class="view">
+      <div class="hero simple">
+        <div>
+          <h1>Projetos</h1>
+          <p>Todos os projetos ativos da equipe.</p>
+        </div>
+      </div>
+
+      <div class="section-head">
+        <h2>Projetos ativos</h2>
+        <div class="section-actions">
+          <span id="projectCount">0 projetos</span>
+          <button id="editAnnouncementBtn" class="btn small producer-only">Aviso do produtor</button>
+          <button id="newProjectBtn" class="btn primary small producer-only">+ projeto</button>
+        </div>
+      </div>
+
+      <div id="projectList" class="projects-grid"></div>
+    </section>
+
+    <section id="tasks" class="view">
+      <div class="board-top">
+        <div class="board-title">
+          <div class="breadcrumb">Tarefas</div>
+          <h1 id="boardProjectName">Projeto</h1>
+          <p>Arraste sua própria tarefa para mudar o status. Produtor pode mover qualquer card.</p>
+        </div>
+
+        <div class="board-actions">
+          <select id="taskProjectFilter" class="select"></select>
+          <button id="newTaskBoard" class="btn primary producer-only">+ tarefa</button>
+        </div>
+      </div>
+
+      <div id="taskBoard" class="board"></div>
+    </section>
+
+    <section id="docs" class="view">
+      <div class="hero simple">
+        <div><h1>Documentos</h1><p>O documento principal de cada projeto.</p></div>
+      </div>
+      <div id="docsGrid" class="resources-grid"></div>
+    </section>
+
+    <section id="assets" class="view">
+      <div class="hero simple">
+        <div><h1>Assets</h1><p>A pasta compartilhada de cada projeto.</p></div>
+      </div>
+      <div id="assetsGrid" class="resources-grid"></div>
+    </section>
+  </main>
+</div>
+
+<dialog id="taskDialog">
+  <form id="taskForm" class="modal">
+    <div class="modal-head">
+      <div>
+        <div id="taskProjectChip" class="modal-chip"></div>
+        <h2 id="taskDialogTitle">Nova tarefa</h2>
+      </div>
+      <button id="closeTaskX" type="button" class="icon-close">×</button>
+    </div>
+
+    <input id="taskId" type="hidden" />
+
+    <div class="form-grid">
+      <div class="field full">
+        <label>Título</label>
+        <input id="taskTitle" required placeholder="Ex.: Finalizar animação de ataque" />
+      </div>
+
+      <div class="field">
+        <label>Projeto</label>
+        <select id="taskProject"></select>
+      </div>
+
+      <div class="field">
+        <label>Responsável</label>
+        <select id="taskOwner"></select>
+        <div class="hint">O membro precisa entrar no Hub uma vez para aparecer aqui.</div>
+      </div>
+
+      <div class="field">
+        <label>Status</label>
+        <select id="taskStatus">
+          <option value="BACKLOG">Backlog</option>
+          <option value="DOING">Fazendo</option>
+          <option value="REVIEW">Revisão</option>
+          <option value="DONE">Feito</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label>Tipo</label>
+        <select id="taskType">
+          <option value="code">Código</option>
+          <option value="art">Arte</option>
+          <option value="design">Design</option>
+          <option value="audio">Som</option>
+          <option value="other">Outro</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label>Prazo</label>
+        <input id="taskDeadline" type="date" />
+      </div>
+
+      <div class="field">
+        <label>Módulo</label>
+        <input id="taskModule" placeholder="Ex.: Combate" />
+      </div>
+
+      <div class="field full producer-only task-notification-options">
+        <label>Notificações</label>
+        <label class="check-row">
+          <input id="notifyPush" type="checkbox" checked />
+          <span>Push no celular/PC do responsável</span>
+        </label>
+        <label class="check-row">
+          <input id="notifyDiscord" type="checkbox" checked />
+          <span>Avisar e marcar o responsável no Discord</span>
+        </label>
+      </div>
+    </div>
+
+    <div class="modal-actions">
+      <button id="deleteTaskBtn" class="btn danger left producer-only" type="button">Excluir tarefa</button>
+      <button id="cancelTaskBtn" class="btn" type="button">Cancelar</button>
+      <button id="saveTaskBtn" class="btn primary producer-only" type="submit">Salvar</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="projectDialog">
+  <form id="projectForm" class="modal">
+    <div class="modal-head">
+      <h2 id="projectDialogTitle">Novo projeto</h2>
+      <button id="closeProjectX" type="button" class="icon-close">×</button>
+    </div>
+
+    <input id="projectId" type="hidden" />
+
+    <div class="form-grid">
+      <div class="field full">
+        <label>Nome do projeto</label>
+        <input id="projectName" required placeholder="Ex.: Projeto Extensionista" />
+      </div>
+
+      <div class="field full">
+        <label>Descrição</label>
+        <textarea id="projectDescription" placeholder="Uma frase curta para identificar o projeto."></textarea>
+      </div>
+
+      <div class="field full">
+        <label>Link do documento principal / GDD</label>
+        <input id="projectDocUrl" type="url" placeholder="https://..." />
+      </div>
+
+      <div class="field full">
+        <label>Link da pasta de assets</label>
+        <input id="projectAssetsUrl" type="url" placeholder="https://..." />
+      </div>
+    </div>
+
+    <div class="modal-actions">
+      <button id="cancelProjectBtn" class="btn" type="button">Cancelar</button>
+      <button class="btn primary" type="submit">Salvar projeto</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="accountDialog">
+  <form id="accountForm" class="modal account-modal">
+    <div class="modal-head">
+      <div>
+        <div class="eyebrow">Sua conta</div>
+        <h2 id="accountName">—</h2>
+      </div>
+      <button id="closeAccountX" type="button" class="icon-close">×</button>
+    </div>
+
+    <div class="account-profile">
+      <img id="accountLargeAvatar" alt="" />
+      <div>
+        <strong id="accountEmail">—</strong>
+        <span id="accountRole" class="role-badge">Membro</span>
+      </div>
+    </div>
+
+    <div class="field">
+      <label>Discord User ID</label>
+      <input id="discordUserId" inputmode="numeric" placeholder="Ex.: 123456789012345678" />
+      <div class="hint">Usado para o webhook marcar você quando receber uma tarefa.</div>
+    </div>
+
+    <div class="settings-block">
+      <div>
+        <strong>Notificações deste dispositivo</strong>
+        <span id="notificationStatus">Ainda não ativadas.</span>
+      </div>
+      <button id="enablePushBtn" type="button" class="btn primary">Ativar</button>
+    </div>
+
+    <div class="modal-actions">
+      <button id="signOutBtn" type="button" class="btn danger left">Sair</button>
+      <button id="cancelAccountBtn" type="button" class="btn">Cancelar</button>
+      <button type="submit" class="btn primary">Salvar</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="announcementDialog">
+  <form id="announcementForm" class="modal">
+    <div class="modal-head">
+      <h2>Aviso do produtor</h2>
+      <button id="closeAnnouncementX" type="button" class="icon-close">×</button>
+    </div>
+    <div class="field">
+      <label>Mensagem</label>
+      <textarea id="announcementText" placeholder="Ex.: First Playable sexta-feira."></textarea>
+    </div>
+    <div class="modal-actions">
+      <button id="cancelAnnouncementBtn" type="button" class="btn">Cancelar</button>
+      <button type="submit" class="btn primary">Publicar</button>
+    </div>
+  </form>
+</dialog>
+
+<script type="module" src="./app.js"></script>
+</body>
+</html>
