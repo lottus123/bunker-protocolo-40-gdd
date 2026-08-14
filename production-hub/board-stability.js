@@ -1,7 +1,7 @@
 import { supabaseConfig } from './supabase-config.js';
 
-// Board estavel: um unico sistema controla drag, feedback visual e persistencia.
-// O card real e movido no DOM imediatamente; o Supabase continua sendo a fonte de verdade.
+// Board: um unico sistema controla drag, feedback visual e persistencia.
+// A mudanca aparece imediatamente na tela; o Supabase continua sendo a fonte de verdade.
 
 const projectRef = (() => {
   try { return new URL(supabaseConfig.url).hostname.split('.')[0]; }
@@ -13,6 +13,7 @@ let dragContext = null;
 let placeholder = null;
 let dragGhost = null;
 let activeZone = null;
+let cleanupTimer = null;
 let taskCache = { projectId: '', at: 0, rows: [] };
 const updateChains = new Map();
 const pendingMoves = new Map();
@@ -20,26 +21,27 @@ const pendingMoves = new Map();
 const boardStyle = document.createElement('style');
 boardStyle.textContent = `
   .task-card.board-drag-source {
-    opacity: .22 !important;
+    opacity: .38 !important;
     transform: none !important;
     animation: none !important;
   }
 
   .column.board-drop-target {
-    border-color: rgba(95,99,242,.48) !important;
-    background: #f0f0fb !important;
-    box-shadow: inset 0 0 0 1px rgba(95,99,242,.10) !important;
+    border-color: rgba(95,99,242,.46) !important;
+    background: rgba(95,99,242,.045) !important;
+    box-shadow: inset 0 0 0 1px rgba(95,99,242,.08) !important;
   }
 
   .dropzone.board-drop-target {
-    background: rgba(95,99,242,.035) !important;
+    background: transparent !important;
   }
 
   .board-drop-placeholder {
+    height: 88px;
     margin: 0 0 9px;
     border: 1.5px dashed rgba(95,99,242,.55);
     border-radius: 13px;
-    background: rgba(95,99,242,.07);
+    background: rgba(95,99,242,.06);
     pointer-events: none;
     box-sizing: border-box;
   }
@@ -55,9 +57,9 @@ boardStyle.textContent = `
     top: -10000px !important;
     z-index: -1 !important;
     margin: 0 !important;
-    opacity: .97 !important;
-    transform: rotate(.6deg) scale(1.01) !important;
-    box-shadow: 0 14px 34px rgba(25,35,55,.20) !important;
+    opacity: .96 !important;
+    transform: scale(1.01) !important;
+    box-shadow: 0 14px 32px rgba(25,35,55,.18) !important;
     pointer-events: none !important;
   }
 `;
@@ -267,55 +269,49 @@ function clearGhost() {
 }
 
 function cleanupDragVisuals() {
-  dragContext?.card?.classList.remove('board-drag-source', 'dragging');
-  document.querySelectorAll('.task-card.board-drag-source').forEach(card => card.classList.remove('board-drag-source', 'dragging'));
+  document.querySelectorAll('.task-card.board-drag-source, .task-card.dragging').forEach(card => {
+    card.classList.remove('board-drag-source', 'dragging');
+  });
   clearPlaceholder();
   clearTarget();
   clearGhost();
+  clearTimeout(cleanupTimer);
+  cleanupTimer = null;
+}
+
+function hardResetDrag() {
+  cleanupDragVisuals();
+  dragContext = null;
 }
 
 function ensurePlaceholder(card) {
-  if (placeholder) return placeholder;
-  placeholder = document.createElement('div');
-  placeholder.className = 'board-drop-placeholder';
-  const height = card?.getBoundingClientRect().height || 86;
-  placeholder.style.height = `${Math.max(72, Math.round(height))}px`;
+  if (!placeholder) {
+    placeholder = document.createElement('div');
+    placeholder.className = 'board-drop-placeholder';
+    const height = card?.getBoundingClientRect().height || 88;
+    placeholder.style.height = `${Math.max(72, Math.round(height))}px`;
+  }
   return placeholder;
 }
 
-function findInsertionPoint(zone, clientY) {
-  const cards = [...zone.querySelectorAll(':scope > .task-card')]
-    .filter(card => card !== dragContext?.card && !card.classList.contains('board-drag-ghost'));
-
-  for (const card of cards) {
-    const rect = card.getBoundingClientRect();
-    if (clientY < rect.top + rect.height / 2) return card;
-  }
-  return null;
-}
-
-function showDropFeedback(zone, clientY) {
+function showDropFeedback(zone) {
   if (!zone || !dragContext) return;
+  if (activeZone === zone && placeholder?.parentElement === zone) return;
 
-  if (activeZone !== zone) {
-    clearTarget();
-    activeZone = zone;
-    activeZone.classList.add('board-drop-target');
-    activeZone.closest('.column')?.classList.add('board-drop-target');
-  }
+  clearTarget();
+  activeZone = zone;
+  activeZone.classList.add('board-drop-target');
+  activeZone.closest('.column')?.classList.add('board-drop-target');
 
   const marker = ensurePlaceholder(dragContext.card);
-  const before = findInsertionPoint(zone, clientY);
-  if (before) zone.insertBefore(marker, before);
-  else zone.appendChild(marker);
+  if (marker.parentElement !== zone) zone.appendChild(marker);
 }
 
 function moveCardImmediately(card, zone) {
   if (!card || !zone) return;
-  const before = placeholder?.parentElement === zone ? placeholder.nextSibling : null;
   card.classList.remove('board-drag-source', 'dragging');
   card.classList.add('board-pending');
-  if (before && before !== card) zone.insertBefore(card, before);
+  if (placeholder?.parentElement === zone) zone.insertBefore(card, placeholder);
   else zone.appendChild(card);
   clearPlaceholder();
   refreshColumnCounts();
@@ -369,7 +365,7 @@ document.addEventListener('dragstart', event => {
   if (!card || card.classList.contains('board-drag-ghost')) return;
 
   event.stopImmediatePropagation();
-  cleanupDragVisuals();
+  hardResetDrag();
 
   const sourceZone = card.closest('.dropzone');
   const sourceStatus = statusFromColumn(card.closest('.column'));
@@ -383,7 +379,7 @@ document.addEventListener('dragstart', event => {
   };
 
   dragContext.taskPromise.then(task => {
-    card.dataset.stableTaskId = task.id;
+    if (dragContext?.card === card) card.dataset.stableTaskId = task.id;
   }).catch(() => {});
 
   card.classList.add('board-drag-source');
@@ -398,8 +394,15 @@ document.addEventListener('dragstart', event => {
     const rect = card.getBoundingClientRect();
     dragGhost.style.width = `${Math.round(rect.width)}px`;
     document.body.appendChild(dragGhost);
-    event.dataTransfer.setDragImage(dragGhost, Math.min(Math.round(rect.width / 2), 80), 24);
+    try {
+      event.dataTransfer.setDragImage(dragGhost, Math.min(Math.round(rect.width / 2), 80), 24);
+    } catch {}
   }
+
+  // Failsafe: nenhum drag pode ficar visualmente preso para sempre.
+  cleanupTimer = setTimeout(() => {
+    if (dragContext?.card === card) hardResetDrag();
+  }, 10000);
 }, true);
 
 document.addEventListener('dragover', event => {
@@ -414,21 +417,27 @@ document.addEventListener('dragover', event => {
   event.preventDefault();
   event.stopImmediatePropagation();
   if (event.dataTransfer) event.dataTransfer.dropEffect = 'move';
-  showDropFeedback(zone, event.clientY);
+  showDropFeedback(zone);
 }, true);
 
 document.addEventListener('drop', async event => {
   if (!dragContext) return;
   const zone = event.target?.closest?.('.dropzone');
-  if (!zone) return;
+  if (!zone) {
+    hardResetDrag();
+    return;
+  }
 
   event.preventDefault();
   event.stopImmediatePropagation();
 
   const context = dragContext;
   const targetStatus = statusFromColumn(zone.closest('.column'));
-  dragContext = null;
 
+  // Limpa o estado de drag antes de qualquer await ou evento tardio do navegador.
+  dragContext = null;
+  clearTimeout(cleanupTimer);
+  cleanupTimer = null;
   clearTarget();
   clearGhost();
 
@@ -438,7 +447,6 @@ document.addEventListener('drop', async event => {
     return;
   }
 
-  // O mesmo card real aparece na coluna nova imediatamente.
   moveCardImmediately(context.card, zone);
 
   try {
@@ -461,30 +469,41 @@ document.addEventListener('drop', async event => {
       const current = pendingMoves.get(task.id);
       if (!current || current.seq !== seq) return;
       pendingMoves.delete(task.id);
-      const card = [...document.querySelectorAll('.task-card')].find(item => cardMatches(item, move));
-      card?.classList.remove('board-pending');
+      const liveCard = [...document.querySelectorAll('.task-card')].find(item => cardMatches(item, move));
+      liveCard?.classList.remove('board-pending');
       refreshColumnCounts();
-    }, 1400);
+    }, 900);
   } catch (error) {
     console.error('[board-stability]', error);
+    pendingMoves.delete(context.card.dataset.stableTaskId || '');
     rollbackCard(context);
     toast(error?.message || 'Não foi possível mover a tarefa.');
   }
 }, true);
 
-document.addEventListener('dragend', event => {
-  if (dragContext) {
-    event.stopImmediatePropagation();
-    dragContext.card?.classList.remove('board-drag-source', 'dragging');
-  }
-  dragContext = null;
-  clearPlaceholder();
-  clearTarget();
-  clearGhost();
+document.addEventListener('dragend', () => {
+  hardResetDrag();
+}, true);
+
+// Brave/Chromium pode perder dragend em alguns cenarios. Estes eventos sao apenas limpeza visual.
+document.addEventListener('mouseup', () => {
+  if (dragContext) setTimeout(hardResetDrag, 0);
+}, true);
+document.addEventListener('pointerup', () => {
+  if (dragContext) setTimeout(hardResetDrag, 0);
+}, true);
+window.addEventListener('blur', () => {
+  if (dragContext) hardResetDrag();
+});
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden && dragContext) hardResetDrag();
+});
+document.addEventListener('keydown', event => {
+  if (event.key === 'Escape' && dragContext) hardResetDrag();
 }, true);
 
 document.getElementById('taskProjectFilter')?.addEventListener('change', () => {
   taskCache = { projectId: '', at: 0, rows: [] };
   pendingMoves.clear();
-  cleanupDragVisuals();
+  hardResetDrag();
 });
