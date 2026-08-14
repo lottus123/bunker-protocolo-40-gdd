@@ -1,8 +1,7 @@
 import { supabaseConfig } from './supabase-config.js';
 
-// Board estável: um único caminho altera o status.
-// O drop original do app é interceptado para evitar a corrida entre
-// atualização local + realtime, que gerava cards duplicados temporariamente.
+// Board estável: o Supabase continua sendo a única fonte de verdade.
+// A resposta imediata do drop é apenas uma prévia visual temporária.
 
 const projectRef = (() => {
   try { return new URL(supabaseConfig.url).hostname.split('.')[0]; }
@@ -12,6 +11,24 @@ const authStorageKey = projectRef ? `sb-${projectRef}-auth-token` : '';
 let dragContext = null;
 let taskCache = { projectId: '', at: 0, rows: [] };
 const updateChains = new Map();
+const pendingVisuals = new Set();
+
+const optimisticStyle = document.createElement('style');
+optimisticStyle.textContent = `
+  .task-card.optimistic-source-hidden {
+    display: none !important;
+  }
+  .task-card.optimistic-preview {
+    opacity: 1 !important;
+    transform: none !important;
+    animation: none !important;
+    transition: none !important;
+    pointer-events: none !important;
+    cursor: default !important;
+    box-shadow: 0 6px 16px rgba(30,40,60,.06) !important;
+  }
+`;
+document.head.appendChild(optimisticStyle);
 
 function getAccessToken() {
   const keys = authStorageKey
@@ -46,6 +63,12 @@ function statusFromColumn(column) {
   if (text.includes('REVIS')) return 'REVIEW';
   if (text.includes('FEITO')) return 'DONE';
   return '';
+}
+
+function findZoneByStatus(status) {
+  return [...document.querySelectorAll('.column')]
+    .find(column => statusFromColumn(column) === status)
+    ?.querySelector('.dropzone') || null;
 }
 
 function directTaskId(card) {
@@ -86,6 +109,21 @@ async function getProjectTasks(projectId) {
 
 function normalize(value) {
   return String(value || '').trim().replace(/\s+/g, ' ').toLowerCase();
+}
+
+function cardFingerprint(card) {
+  return {
+    title: normalize(card?.querySelector('.task-title')?.textContent),
+    module: normalize(card?.querySelector('.module')?.textContent),
+  };
+}
+
+function cardMatches(card, fingerprint) {
+  if (!card || !fingerprint?.title) return false;
+  const current = cardFingerprint(card);
+  if (current.title !== fingerprint.title) return false;
+  if (fingerprint.module && current.module && current.module !== fingerprint.module) return false;
+  return true;
 }
 
 async function resolveTask(card) {
@@ -148,10 +186,86 @@ function enqueueUpdate(taskId, status) {
   return next;
 }
 
+function refreshVisualCounts() {
+  document.querySelectorAll('.column').forEach(column => {
+    const count = [...column.querySelectorAll('.dropzone .task-card')]
+      .filter(card => !card.classList.contains('optimistic-source-hidden')).length;
+    const bubble = column.querySelector('.column-count');
+    if (bubble) bubble.textContent = String(count);
+  });
+}
+
+function createOptimisticVisual(card, targetZone, targetStatus) {
+  if (!card || !targetZone) return null;
+
+  const fingerprint = cardFingerprint(card);
+  const preview = card.cloneNode(true);
+  preview.classList.remove('dragging', 'motion-dragging', 'motion-enter', 'optimistic-moving');
+  preview.classList.add('optimistic-preview');
+  preview.removeAttribute('draggable');
+  preview.draggable = false;
+  preview.setAttribute('aria-hidden', 'true');
+
+  card.classList.remove('dragging', 'motion-dragging');
+  card.classList.add('optimistic-source-hidden');
+  targetZone.appendChild(preview);
+  refreshVisualCounts();
+
+  const visual = {
+    source: card,
+    preview,
+    fingerprint,
+    targetStatus,
+    resolvedTaskId: '',
+    finished: false,
+  };
+  pendingVisuals.add(visual);
+  return visual;
+}
+
+function rollbackVisual(visual) {
+  if (!visual || visual.finished) return;
+  visual.finished = true;
+  visual.preview?.remove();
+  visual.source?.classList.remove('optimistic-source-hidden');
+  pendingVisuals.delete(visual);
+  refreshVisualCounts();
+}
+
+function finishVisual(visual) {
+  if (!visual || visual.finished) return;
+  visual.finished = true;
+  visual.preview?.remove();
+  visual.source?.remove();
+  pendingVisuals.delete(visual);
+  refreshVisualCounts();
+}
+
+function reconcileVisuals() {
+  for (const visual of [...pendingVisuals]) {
+    if (!visual.preview?.isConnected && !visual.source?.isConnected) {
+      visual.finished = true;
+      pendingVisuals.delete(visual);
+      continue;
+    }
+
+    const targetZone = findZoneByStatus(visual.targetStatus);
+    if (!targetZone) continue;
+    const realTarget = [...targetZone.querySelectorAll('.task-card:not(.optimistic-preview)')]
+      .find(card => cardMatches(card, visual.fingerprint));
+    if (realTarget) finishVisual(visual);
+  }
+}
+
+const boardObserver = new MutationObserver(() => reconcileVisuals());
+const taskBoard = document.getElementById('taskBoard');
+if (taskBoard) boardObserver.observe(taskBoard, { childList: true, subtree: true });
+
 document.addEventListener('dragstart', (event) => {
   const card = event.target?.closest?.('.task-card');
-  if (!card) return;
+  if (!card || card.classList.contains('optimistic-preview')) return;
   dragContext = {
+    card,
     sourceStatus: statusFromColumn(card.closest('.column')),
     taskPromise: resolveTask(card),
   };
@@ -170,7 +284,7 @@ document.addEventListener('drop', async (event) => {
   const zone = event.target?.closest?.('.dropzone');
   if (!zone) return;
 
-  // Corrige a duplicação: impede o handler antigo de também atualizar/renderizar.
+  // Impede o handler antigo de também mover/renderizar a tarefa.
   event.preventDefault();
   event.stopImmediatePropagation();
 
@@ -179,13 +293,23 @@ document.addEventListener('drop', async (event) => {
   dragContext = null;
   if (!targetStatus || targetStatus === context.sourceStatus) return;
 
+  // Feedback imediato: nenhuma espera de rede para o usuário ver a mudança.
+  const visual = createOptimisticVisual(context.card, zone, targetStatus);
+
   try {
     const task = await context.taskPromise;
+    if (visual) {
+      visual.resolvedTaskId = task.id;
+      visual.preview.dataset.optimisticTaskId = task.id;
+    }
     await enqueueUpdate(task.id, targetStatus);
-    // Não move, duplica, anima ou recria card aqui.
-    // O realtime já existente no Hub atualiza o board uma única vez.
+
+    // Normalmente o realtime substitui a prévia quase imediatamente.
+    // Se o DOM já tiver sido atualizado antes deste await terminar, reconciliamos agora.
+    reconcileVisuals();
   } catch (error) {
     console.error('[board-stability]', error);
+    rollbackVisual(visual);
     toast(error?.message || 'Não foi possível mover a tarefa.');
   }
 }, true);
@@ -196,4 +320,5 @@ document.addEventListener('dragend', () => {
 
 document.getElementById('taskProjectFilter')?.addEventListener('change', () => {
   taskCache = { projectId: '', at: 0, rows: [] };
+  for (const visual of [...pendingVisuals]) rollbackVisual(visual);
 });
