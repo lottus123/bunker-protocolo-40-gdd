@@ -1,10 +1,7 @@
 import { supabaseConfig } from './supabase-config.js';
 
-// Board simples e previsivel:
-// 1. drag nativo do navegador
-// 2. destaque visual da coluna de destino
-// 3. card real muda de coluna imediatamente no drop
-// 4. Supabase persiste a mudanca em segundo plano
+// Board sem HTML5 Drag and Drop.
+// Pointer Events controlam somente a interação visual; Supabase persiste o status.
 
 const projectRef = (() => {
   try { return new URL(supabaseConfig.url).hostname.split('.')[0]; }
@@ -13,38 +10,65 @@ const projectRef = (() => {
 
 const authStorageKey = projectRef ? `sb-${projectRef}-auth-token` : '';
 
-let dragContext = null;
+let pointerState = null;
 let placeholder = null;
 let activeZone = null;
+let floatingCard = null;
+let suppressClickUntil = 0;
+let moveSequence = 0;
 let taskCache = { projectId: '', at: 0, rows: [] };
 const updateChains = new Map();
 
 const boardStyle = document.createElement('style');
 boardStyle.textContent = `
-  .task-card.board-drag-source {
-    opacity: .35 !important;
+  .task-card {
+    cursor: grab;
+  }
+
+  .task-card.board-pointer-source {
+    opacity: .28 !important;
     animation: none !important;
     transform: none !important;
   }
 
+  body.board-pointer-active,
+  body.board-pointer-active * {
+    cursor: grabbing !important;
+    user-select: none !important;
+  }
+
   .column.board-drop-target {
-    border-color: rgba(95,99,242,.5) !important;
-    background: rgba(95,99,242,.05) !important;
-    box-shadow: inset 0 0 0 1px rgba(95,99,242,.1) !important;
+    border-color: rgba(95,99,242,.52) !important;
+    background: rgba(95,99,242,.055) !important;
+    box-shadow: inset 0 0 0 1px rgba(95,99,242,.10) !important;
   }
 
   .board-drop-placeholder {
     height: 88px;
     margin: 0 0 9px;
-    border: 1.5px dashed rgba(95,99,242,.58);
+    border: 1.5px dashed rgba(95,99,242,.62);
     border-radius: 13px;
-    background: rgba(95,99,242,.07);
+    background: rgba(95,99,242,.075);
     box-sizing: border-box;
     pointer-events: none;
   }
 
+  .board-pointer-ghost {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    z-index: 99999 !important;
+    margin: 0 !important;
+    opacity: .96 !important;
+    pointer-events: none !important;
+    animation: none !important;
+    transition: none !important;
+    transform-origin: top left !important;
+    box-shadow: 0 16px 36px rgba(25,35,55,.20) !important;
+  }
+
   .task-card.board-saving {
-    opacity: .92;
+    opacity: .94;
   }
 `;
 document.head.appendChild(boardStyle);
@@ -201,17 +225,13 @@ function enqueueUpdate(taskId, status) {
   return next;
 }
 
-function updateCount(column) {
-  if (!column) return;
-  const bubble = column.querySelector('.column-count');
+function updateCount(zone) {
+  const column = zone?.closest('.column');
+  const bubble = column?.querySelector('.column-count');
   if (!bubble) return;
-  const next = String(column.querySelectorAll('.dropzone > .task-card').length);
-  if (bubble.textContent !== next) bubble.textContent = next;
-}
-
-function updateAffectedCounts(...zones) {
-  const columns = new Set(zones.filter(Boolean).map(zone => zone.closest('.column')).filter(Boolean));
-  columns.forEach(updateCount);
+  const count = column.querySelectorAll('.dropzone > .task-card:not(.board-pointer-ghost)').length;
+  const text = String(count);
+  if (bubble.textContent !== text) bubble.textContent = text;
 }
 
 function clearPlaceholder() {
@@ -220,22 +240,72 @@ function clearPlaceholder() {
 }
 
 function clearTarget() {
-  if (activeZone) {
-    activeZone.closest('.column')?.classList.remove('board-drop-target');
-  }
+  activeZone?.closest('.column')?.classList.remove('board-drop-target');
   activeZone = null;
 }
 
-function clearDragVisuals() {
-  document.querySelectorAll('.task-card.board-drag-source, .task-card.dragging').forEach(card => {
-    card.classList.remove('board-drag-source', 'dragging');
-  });
-  clearPlaceholder();
-  clearTarget();
+function clearFloatingCard() {
+  floatingCard?.remove();
+  floatingCard = null;
 }
 
-function showDropFeedback(zone) {
-  if (!dragContext || !zone) return;
+function clearVisuals() {
+  pointerState?.card?.classList.remove('board-pointer-source');
+  document.body.classList.remove('board-pointer-active');
+  clearPlaceholder();
+  clearTarget();
+  clearFloatingCard();
+}
+
+function cancelPointerInteraction() {
+  const state = pointerState;
+  pointerState = null;
+  if (state?.card && state.pointerId != null) {
+    try { state.card.releasePointerCapture?.(state.pointerId); } catch {}
+  }
+  clearVisuals();
+}
+
+function beginVisualDrag(state, clientX, clientY) {
+  if (!state || state.dragging) return;
+  state.dragging = true;
+  state.card.classList.add('board-pointer-source');
+  document.body.classList.add('board-pointer-active');
+
+  const rect = state.card.getBoundingClientRect();
+  floatingCard = state.card.cloneNode(true);
+  floatingCard.classList.remove('board-pointer-source', 'board-saving', 'dragging');
+  floatingCard.classList.add('board-pointer-ghost');
+  floatingCard.removeAttribute('draggable');
+  floatingCard.style.width = `${Math.round(rect.width)}px`;
+  floatingCard.style.height = `${Math.round(rect.height)}px`;
+  document.body.appendChild(floatingCard);
+
+  state.offsetX = Math.min(Math.max(clientX - rect.left, 18), rect.width - 18);
+  state.offsetY = Math.min(Math.max(clientY - rect.top, 14), rect.height - 14);
+  moveFloatingCard(clientX, clientY);
+}
+
+function moveFloatingCard(clientX, clientY) {
+  if (!floatingCard || !pointerState) return;
+  const x = Math.round(clientX - (pointerState.offsetX || 24));
+  const y = Math.round(clientY - (pointerState.offsetY || 20));
+  floatingCard.style.transform = `translate3d(${x}px, ${y}px, 0) scale(1.01)`;
+}
+
+function zoneAtPoint(clientX, clientY) {
+  const hit = document.elementFromPoint(clientX, clientY);
+  return hit?.closest?.('.dropzone') || null;
+}
+
+function showTarget(zone) {
+  if (!pointerState?.dragging) return;
+
+  if (!zone) {
+    clearPlaceholder();
+    clearTarget();
+    return;
+  }
 
   if (activeZone !== zone) {
     clearTarget();
@@ -246,18 +316,17 @@ function showDropFeedback(zone) {
   if (!placeholder) {
     placeholder = document.createElement('div');
     placeholder.className = 'board-drop-placeholder';
-    const height = dragContext.card?.getBoundingClientRect().height || 88;
+    const height = pointerState.card?.getBoundingClientRect().height || 88;
     placeholder.style.height = `${Math.max(72, Math.round(height))}px`;
   }
 
   if (placeholder.parentElement !== zone) zone.appendChild(placeholder);
 }
 
-function rollback(context) {
-  const { card, sourceZone, sourceNextSibling } = context;
-  if (!card || !sourceZone?.isConnected) return;
-
-  card.classList.remove('board-saving', 'board-drag-source', 'dragging');
+function rollbackMove(state, movedZone, sequence) {
+  const { card, sourceZone, sourceNextSibling } = state || {};
+  if (!card || card.dataset.boardMoveSequence !== String(sequence)) return;
+  if (!sourceZone?.isConnected) return;
 
   if (sourceNextSibling?.isConnected && sourceNextSibling.parentElement === sourceZone) {
     sourceZone.insertBefore(card, sourceNextSibling);
@@ -265,118 +334,144 @@ function rollback(context) {
     sourceZone.appendChild(card);
   }
 
-  updateAffectedCounts(sourceZone, card.closest('.dropzone'));
+  card.classList.remove('board-saving');
+  updateCount(sourceZone);
+  updateCount(movedZone);
 }
 
-document.addEventListener('dragstart', event => {
-  const card = event.target?.closest?.('.task-card');
-  if (!card) return;
+async function finishMove(state, targetZone) {
+  const card = state.card;
+  const targetStatus = statusFromColumn(targetZone?.closest('.column'));
 
-  // Bloqueia a logica antiga do app para existir apenas um sistema de drag.
+  if (!targetZone || !targetStatus || targetStatus === state.sourceStatus) return;
+
+  const sourceZone = state.sourceZone;
+  const sequence = ++moveSequence;
+  card.dataset.boardMoveSequence = String(sequence);
+  card.classList.remove('board-pointer-source');
+  card.classList.add('board-saving');
+
+  if (placeholder?.parentElement === targetZone) {
+    targetZone.insertBefore(card, placeholder);
+  } else {
+    targetZone.appendChild(card);
+  }
+
+  updateCount(sourceZone);
+  updateCount(targetZone);
+
+  try {
+    const task = await state.taskPromise;
+    card.dataset.stableTaskId = task.id;
+    await enqueueUpdate(task.id, targetStatus);
+
+    if (card.dataset.boardMoveSequence === String(sequence)) {
+      card.classList.remove('board-saving');
+    }
+  } catch (error) {
+    console.error('[board-pointer]', error);
+    rollbackMove(state, targetZone, sequence);
+    toast(error?.message || 'Não foi possível mover a tarefa.');
+  }
+}
+
+// Desativa totalmente o HTML5 Drag and Drop dos cards.
+document.addEventListener('dragstart', event => {
+  if (!event.target?.closest?.('.task-card')) return;
+  event.preventDefault();
   event.stopImmediatePropagation();
-  clearDragVisuals();
+}, true);
+
+document.addEventListener('pointerdown', event => {
+  if (event.button !== 0 || pointerState) return;
+
+  const card = event.target?.closest?.('.task-card');
+  if (!card || card.classList.contains('board-pointer-ghost')) return;
+  if (event.target?.closest?.('button,a,input,select,textarea')) return;
 
   const sourceZone = card.closest('.dropzone');
   const sourceStatus = statusFromColumn(card.closest('.column'));
+  if (!sourceZone || !sourceStatus) return;
 
-  dragContext = {
+  pointerState = {
+    pointerId: event.pointerId,
     card,
     sourceZone,
     sourceStatus,
     sourceNextSibling: card.nextSibling,
+    startX: event.clientX,
+    startY: event.clientY,
+    dragging: false,
     taskPromise: resolveTask(card, sourceStatus),
   };
 
-  card.classList.add('board-drag-source');
-
-  if (event.dataTransfer) {
-    event.dataTransfer.effectAllowed = 'move';
-    try { event.dataTransfer.setData('text/plain', 'task'); } catch {}
-    // Sem setDragImage: usamos o ghost nativo do navegador, mais leve e confiavel.
-  }
+  try { card.setPointerCapture?.(event.pointerId); } catch {}
 }, true);
 
-document.addEventListener('dragover', event => {
-  if (!dragContext) return;
+document.addEventListener('pointermove', event => {
+  const state = pointerState;
+  if (!state || state.pointerId !== event.pointerId) return;
 
-  const zone = event.target?.closest?.('.dropzone');
-  if (!zone) {
-    clearPlaceholder();
-    clearTarget();
+  if (!state.dragging) {
+    const dx = event.clientX - state.startX;
+    const dy = event.clientY - state.startY;
+    if ((dx * dx) + (dy * dy) < 49) return;
+    beginVisualDrag(state, event.clientX, event.clientY);
+  }
+
+  event.preventDefault();
+  moveFloatingCard(event.clientX, event.clientY);
+  showTarget(zoneAtPoint(event.clientX, event.clientY));
+}, true);
+
+document.addEventListener('pointerup', event => {
+  const state = pointerState;
+  if (!state || state.pointerId !== event.pointerId) return;
+
+  pointerState = null;
+  try { state.card.releasePointerCapture?.(event.pointerId); } catch {}
+
+  if (!state.dragging) {
+    clearVisuals();
     return;
   }
 
   event.preventDefault();
   event.stopImmediatePropagation();
-  if (event.dataTransfer) event.dataTransfer.dropEffect = 'move';
-  showDropFeedback(zone);
+  suppressClickUntil = Date.now() + 350;
+
+  const targetZone = activeZone || zoneAtPoint(event.clientX, event.clientY);
+  // Move antes de limpar o placeholder para a resposta visual ser instantânea.
+  const movePromise = finishMove(state, targetZone);
+  clearVisuals();
+  void movePromise;
 }, true);
 
-document.addEventListener('drop', async event => {
-  if (!dragContext) return;
+document.addEventListener('pointercancel', event => {
+  if (!pointerState || pointerState.pointerId !== event.pointerId) return;
+  cancelPointerInteraction();
+}, true);
 
-  const zone = event.target?.closest?.('.dropzone');
-  const context = dragContext;
-  dragContext = null;
-
+document.addEventListener('click', event => {
+  if (Date.now() >= suppressClickUntil) return;
+  if (!event.target?.closest?.('.task-card')) return;
   event.preventDefault();
   event.stopImmediatePropagation();
-
-  if (!zone) {
-    clearDragVisuals();
-    return;
-  }
-
-  const targetStatus = statusFromColumn(zone.closest('.column'));
-
-  if (!targetStatus || targetStatus === context.sourceStatus) {
-    clearDragVisuals();
-    return;
-  }
-
-  const sourceZone = context.sourceZone;
-
-  // Resposta visual imediata: o MESMO card real vai para o novo status.
-  context.card.classList.remove('board-drag-source', 'dragging');
-  context.card.classList.add('board-saving');
-
-  if (placeholder?.parentElement === zone) zone.insertBefore(context.card, placeholder);
-  else zone.appendChild(context.card);
-
-  clearDragVisuals();
-  updateAffectedCounts(sourceZone, zone);
-
-  try {
-    const task = await context.taskPromise;
-    context.card.dataset.stableTaskId = task.id;
-    await enqueueUpdate(task.id, targetStatus);
-    context.card.classList.remove('board-saving');
-  } catch (error) {
-    console.error('[board]', error);
-    rollback(context);
-    toast(error?.message || 'Não foi possível mover a tarefa.');
-  }
-}, true);
-
-document.addEventListener('dragend', () => {
-  dragContext = null;
-  clearDragVisuals();
 }, true);
 
 document.addEventListener('keydown', event => {
-  if (event.key === 'Escape') {
-    dragContext = null;
-    clearDragVisuals();
-  }
+  if (event.key === 'Escape' && pointerState) cancelPointerInteraction();
 }, true);
 
 window.addEventListener('blur', () => {
-  dragContext = null;
-  clearDragVisuals();
+  if (pointerState) cancelPointerInteraction();
+});
+
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden && pointerState) cancelPointerInteraction();
 });
 
 document.getElementById('taskProjectFilter')?.addEventListener('change', () => {
   taskCache = { projectId: '', at: 0, rows: [] };
-  dragContext = null;
-  clearDragVisuals();
+  if (pointerState) cancelPointerInteraction();
 });
