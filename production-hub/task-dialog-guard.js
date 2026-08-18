@@ -1,12 +1,45 @@
-// Protege o modal de tarefa contra aberturas involuntarias.
-// 1. Um arrasto nao pode virar clique de edicao ao soltar.
-// 2. O navegador nao pode restaurar o taskDialog aberto ao entrar no Hub.
+// Edicao de tarefa explicita.
+// Clicar no corpo do card nunca abre o modal. Apenas o botao "Editar card" autoriza a edicao.
 
-let pointerTrack = null;
-let suppressCardClickUntil = 0;
-let lastIntentionalCardClick = 0;
-const bootStartedAt = performance.now();
-const BOOT_GUARD_MS = 3000;
+let authorizedCard = null;
+let allowEditDialogUntil = 0;
+
+const editStyle = document.createElement('style');
+editStyle.textContent = `
+  .task-card {
+    position: relative;
+  }
+
+  .task-card .edit-card-btn {
+    appearance: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-top: 10px;
+    padding: 6px 9px;
+    border: 1px solid #e0e3ea;
+    border-radius: 8px;
+    background: #f8f9fb;
+    color: #626977;
+    font: inherit;
+    font-size: 11px;
+    font-weight: 800;
+    line-height: 1;
+    cursor: pointer !important;
+    transition: background-color 120ms ease, border-color 120ms ease, color 120ms ease;
+  }
+
+  .task-card .edit-card-btn:hover {
+    background: #f0f1f6;
+    border-color: #d3d7e0;
+    color: #454b57;
+  }
+
+  body.board-pointer-active .task-card .edit-card-btn {
+    pointer-events: none;
+  }
+`;
+document.head.appendChild(editStyle);
 
 function taskDialog() {
   return document.getElementById('taskDialog');
@@ -15,105 +48,101 @@ function taskDialog() {
 function closeTaskDialog() {
   const dialog = taskDialog();
   if (!dialog?.open) return;
-  try { dialog.close(); } catch {
-    dialog.removeAttribute('open');
-  }
+  try { dialog.close(); }
+  catch { dialog.removeAttribute('open'); }
 }
 
-function shouldSuppressOpen() {
-  const now = performance.now();
-  const bootingWithoutIntent = now - bootStartedAt < BOOT_GUARD_MS && now - lastIntentionalCardClick > 700;
-  const justDragged = now < suppressCardClickUntil;
-  return bootingWithoutIntent || justDragged;
-}
+function enhanceCards(root = document) {
+  root.querySelectorAll?.('.task-card:not([data-edit-control-ready])').forEach(card => {
+    card.dataset.editControlReady = '1';
 
-// Fecha qualquer estado restaurado pelo navegador assim que o patch entra.
-closeTaskDialog();
-queueMicrotask(closeTaskDialog);
-setTimeout(() => {
-  if (performance.now() - lastIntentionalCardClick > 700) closeTaskDialog();
-}, 120);
-
-window.addEventListener('pageshow', () => {
-  lastIntentionalCardClick = 0;
-  closeTaskDialog();
-  setTimeout(closeTaskDialog, 80);
-}, true);
-
-// Acompanha o gesto no nivel da window. Assim sabemos que foi arrasto antes
-// de qualquer listener antigo do app receber o pointerup/click no card.
-window.addEventListener('pointerdown', event => {
-  if (event.button !== 0) return;
-  const card = event.target?.closest?.('.task-card');
-  if (!card) {
-    pointerTrack = null;
-    return;
-  }
-
-  pointerTrack = {
-    pointerId: event.pointerId,
-    startX: event.clientX,
-    startY: event.clientY,
-    moved: false,
-  };
-}, true);
-
-window.addEventListener('pointermove', event => {
-  const track = pointerTrack;
-  if (!track || track.pointerId !== event.pointerId || track.moved) return;
-  const dx = event.clientX - track.startX;
-  const dy = event.clientY - track.startY;
-  if ((dx * dx) + (dy * dy) >= 36) track.moved = true;
-}, true);
-
-window.addEventListener('pointerup', event => {
-  const track = pointerTrack;
-  if (!track || track.pointerId !== event.pointerId) return;
-
-  const wasDrag = track.moved || document.body.classList.contains('board-pointer-active');
-  pointerTrack = null;
-
-  if (!wasDrag) return;
-
-  // Tempo folgado para cobrir o click sintetico do Chromium/Brave.
-  suppressCardClickUntil = performance.now() + 1200;
-
-  // Se algum listener antigo abrir o modal no proprio pointerup,
-  // fechamos no proximo microtask sem interferir no movimento do board.
-  queueMicrotask(() => {
-    if (performance.now() < suppressCardClickUntil) closeTaskDialog();
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'edit-card-btn';
+    button.textContent = 'Editar card';
+    button.setAttribute('aria-label', 'Editar card');
+    card.appendChild(button);
   });
-  setTimeout(() => {
-    if (performance.now() < suppressCardClickUntil) closeTaskDialog();
-  }, 0);
-}, true);
+}
 
-window.addEventListener('pointercancel', event => {
-  if (pointerTrack?.pointerId === event.pointerId) pointerTrack = null;
-}, true);
+function openCardEditor(card) {
+  if (!card?.isConnected) return;
 
-// Captura o click antes de ele chegar no card/documento.
+  // O app original já sabe preencher e abrir o modal. Reutilizamos essa lógica,
+  // mas somente por meio de um clique sintético explicitamente autorizado.
+  authorizedCard = card;
+  allowEditDialogUntil = performance.now() + 1500;
+
+  try {
+    card.dispatchEvent(new MouseEvent('click', {
+      bubbles: true,
+      cancelable: true,
+      view: window,
+    }));
+  } finally {
+    authorizedCard = null;
+  }
+}
+
+// O card pode ser redesenhado pelo realtime a qualquer momento.
+const board = document.getElementById('taskBoard');
+if (board) {
+  enhanceCards(board);
+  const boardObserver = new MutationObserver(records => {
+    for (const record of records) {
+      for (const node of record.addedNodes) {
+        if (!(node instanceof Element)) continue;
+        if (node.matches?.('.task-card')) enhanceCards(node.parentElement || board);
+        else if (node.querySelector?.('.task-card')) enhanceCards(node);
+      }
+    }
+  });
+  boardObserver.observe(board, { childList: true, subtree: true });
+}
+
+// Regra principal: nenhum clique comum em card chega à lógica antiga de edição.
 window.addEventListener('click', event => {
   const card = event.target?.closest?.('.task-card');
   if (!card) return;
 
-  if (performance.now() < suppressCardClickUntil) {
+  const editButton = event.target?.closest?.('.edit-card-btn');
+
+  if (editButton) {
     event.preventDefault();
     event.stopPropagation();
     event.stopImmediatePropagation();
-    closeTaskDialog();
+    openCardEditor(card);
     return;
   }
 
-  lastIntentionalCardClick = performance.now();
+  // Este é o clique sintético disparado por openCardEditor.
+  if (authorizedCard === card) return;
+
+  event.preventDefault();
+  event.stopPropagation();
+  event.stopImmediatePropagation();
 }, true);
 
-// Ultima barreira: se o atributo open aparecer por restauracao de estado
-// ou por um evento residual de drag, removemos imediatamente.
+// Ao entrar no Hub, nunca restaurar uma edição antiga.
+closeTaskDialog();
+queueMicrotask(closeTaskDialog);
+window.addEventListener('pageshow', () => {
+  allowEditDialogUntil = 0;
+  closeTaskDialog();
+  setTimeout(closeTaskDialog, 50);
+}, true);
+
+// Se alguma lógica antiga tentar abrir "Editar tarefa" sem passar pelo botão,
+// fecha imediatamente. "Nova tarefa" continua funcionando normalmente.
 const dialog = taskDialog();
 if (dialog) {
-  const observer = new MutationObserver(() => {
-    if (dialog.open && shouldSuppressOpen()) closeTaskDialog();
+  const dialogObserver = new MutationObserver(() => {
+    queueMicrotask(() => {
+      if (!dialog.open) return;
+      const title = (document.getElementById('taskDialogTitle')?.textContent || '').trim().toLowerCase();
+      const isEdit = title.includes('editar');
+      if (isEdit && performance.now() > allowEditDialogUntil) closeTaskDialog();
+    });
   });
-  observer.observe(dialog, { attributes: true, attributeFilter: ['open'] });
+  dialogObserver.observe(dialog, { attributes: true, attributeFilter: ['open'] });
 }
