@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
   <meta name="theme-color" content="#5f63f2" />
-  <meta name="description" content="Production Hub — tarefas, projetos, documentos e assets da equipe." />
+  <meta name="description" content="Production Hub para acompanhar o que fazer agora, blockers, pedidos, builds e decisões da equipe." />
   <link rel="manifest" href="./manifest.webmanifest" />
   <link rel="icon" href="./icons/icon.svg" type="image/svg+xml" />
   <link rel="stylesheet" href="./styles.css" />
@@ -29,7 +29,7 @@
   <div class="auth-card">
     <div class="logo-mark">PH</div>
     <h1>Production Hub</h1>
-    <p>Tarefas, mudanças e materiais da equipe em um único lugar.</p>
+    <p>O que fazer agora, quem precisa de você e o que está bloqueando a equipe.</p>
 
     <button id="googleLoginBtn" class="btn primary wide">Continuar com Google</button>
 
@@ -50,10 +50,10 @@
 
     <nav class="nav">
       <button class="active" data-view="home">Hoje</button>
-      <button data-view="projects">Projetos</button>
-      <button data-view="tasks">Tarefas</button>
-      <button data-view="docs">Documentos</button>
-      <button data-view="assets">Assets</button>
+      <button data-view="tasks">Produção</button>
+      <button data-view="projects">Projeto</button>
+      <button data-view="docs">Equipe</button>
+      <button data-view="assets" style="display:none">Assets</button>
     </nav>
 
     <div class="header-actions">
@@ -81,7 +81,7 @@
           <div class="eyebrow">Continuar trabalhando</div>
           <strong id="resumeProjectName">Nenhum projeto</strong>
           <div class="row">
-            <span id="resumeProjectMeta">—</span>
+            <span id="resumeProjectMeta">.</span>
             <button id="resumeBtn" class="btn primary small">Abrir</button>
           </div>
         </div>
@@ -102,7 +102,7 @@
           <div class="panel">
             <div class="panel-head">
               <h2>Desde sua última visita</h2>
-              <span id="lastVisitLabel">—</span>
+              <span id="lastVisitLabel">.</span>
             </div>
             <div id="activityList" class="activity"></div>
           </div>
@@ -307,7 +307,7 @@
     <div class="modal-head">
       <div>
         <div class="eyebrow">Sua conta</div>
-        <h2 id="accountName">—</h2>
+        <h2 id="accountName">.</h2>
       </div>
       <button id="closeAccountX" type="button" class="icon-close">×</button>
     </div>
@@ -315,7 +315,7 @@
     <div class="account-profile">
       <img id="accountLargeAvatar" alt="" />
       <div>
-        <strong id="accountEmail">—</strong>
+        <strong id="accountEmail">.</strong>
         <span id="accountRole" class="role-badge">Membro</span>
       </div>
     </div>
@@ -359,6 +359,6 @@
   </form>
 </dialog>
 
-<script type="module" src="./app.js?v=20260814-0335"></script>
+<script type="module" src="./app.js?v=20260818-1802"></script>
 </body>
 </html>
